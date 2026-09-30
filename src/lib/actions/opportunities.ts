@@ -1,0 +1,99 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { opportunitySchema } from "@/lib/validation";
+import { actionError, rawValues, fieldError, parseForm, type FormState } from "./shared";
+
+function revalidateOpportunities(id?: string) {
+  revalidatePath("/opportunities");
+  revalidatePath("/accounts", "layout");
+  revalidatePath("/contacts", "layout");
+  revalidatePath("/");
+  if (id) revalidatePath(`/opportunities/${id}`);
+}
+
+type Parsed = ReturnType<typeof opportunitySchema.parse>;
+
+/**
+ * Проверяет связи и правила стадий, возвращает данные для записи в БД.
+ * won: нужны сумма больше 0 и контакт. lost: нужна причина отказа.
+ */
+async function buildData(data: Parsed, values: Record<string, string>, closedAtBefore: Date | null) {
+  const [stage, account, contact] = await Promise.all([
+    db.stage.findUnique({ where: { id: data.stageId } }),
+    db.account.findUnique({ where: { id: data.accountId }, select: { id: true } }),
+    data.contactId ? db.contact.findUnique({ where: { id: data.contactId }, select: { accountId: true } }) : null,
+  ]);
+  if (!stage) return { error: fieldError(values, "stageId", "Стадия не найдена") };
+  if (!account) return { error: fieldError(values, "accountId", "Компания не найдена") };
+  if (data.contactId && !contact) return { error: fieldError(values, "contactId", "Контакт не найден") };
+  if (contact && contact.accountId !== data.accountId) {
+    return { error: fieldError(values, "contactId", "Контакт принадлежит другой компании") };
+  }
+
+  if (stage.code === "won") {
+    if (!data.amount || data.amount <= 0) return { error: fieldError(values, "amount", "Для стадии «Выиграна» укажите сумму больше 0") };
+    if (!data.contactId) return { error: fieldError(values, "contactId", "Для стадии «Выиграна» выберите контакт") };
+  }
+  if (stage.code === "lost" && !data.lostReason) {
+    return { error: fieldError(values, "lostReason", "Для стадии «Проиграна» укажите причину отказа") };
+  }
+
+  const status = stage.code === "won" ? "won" : stage.code === "lost" ? "lost" : "open";
+  return {
+    data: {
+      ...data,
+      status,
+      closedAt: status === "open" ? null : (closedAtBefore ?? new Date()),
+      lostReason: status === "lost" ? data.lostReason : null,
+    } as const,
+  };
+}
+
+export async function createOpportunity(_prev: FormState, formData: FormData): Promise<FormState> {
+  const parsed = parseForm(opportunitySchema, formData);
+  if (!parsed.ok) return parsed.state;
+
+  let id: string;
+  try {
+    const built = await buildData(parsed.data, rawValues(formData), null);
+    if (built.error) return built.error;
+    id = (await db.opportunity.create({ data: built.data })).id;
+  } catch (error) {
+    return actionError(error, rawValues(formData));
+  }
+  revalidateOpportunities();
+  redirect(`/opportunities/${id}`);
+}
+
+export async function updateOpportunity(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const parsed = parseForm(opportunitySchema, formData);
+  if (!parsed.ok) return parsed.state;
+
+  try {
+    const existing = await db.opportunity.findUnique({ where: { id }, select: { closedAt: true } });
+    if (!existing) return { message: "Сделка не найдена: возможно, её уже удалили." };
+    const built = await buildData(parsed.data, rawValues(formData), existing.closedAt);
+    if (built.error) return built.error;
+    await db.opportunity.update({ where: { id }, data: built.data });
+  } catch (error) {
+    return actionError(error, rawValues(formData));
+  }
+  revalidateOpportunities(id);
+  redirect(`/opportunities/${id}`);
+}
+
+export async function deleteOpportunity(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
+  void _formData;
+  try {
+    const found = await db.opportunity.findUnique({ where: { id }, select: { id: true } });
+    if (!found) return { message: "Сделка уже удалена." };
+    await db.opportunity.delete({ where: { id } });
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidateOpportunities();
+  redirect("/opportunities");
+}
