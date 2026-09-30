@@ -41,7 +41,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         actions={
           <>
             <LinkButton href={`/opportunities/${deal.id}/edit`} ghost>Редактировать</LinkButton>
-            <DeleteButton action={deleteOpportunity.bind(null, deal.id)} confirmText={`Удалить сделку «${deal.title}»? Её активности тоже будут удалены.`} />
+            <DeleteButton action={deleteOpportunity.bind(null, deal.id)} confirmText={`Удалить сделку «${deal.title}»?`} consequences="Сделка, её активности и история стадий будут удалены без возможности восстановления." />
           </>
         }
       />

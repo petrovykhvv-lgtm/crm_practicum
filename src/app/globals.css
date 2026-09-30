@@ -281,3 +281,20 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--btn-2); 
   .glass { padding: 18px 14px; }
   th, td { padding-left: 6px; padding-right: 6px; }
 }
+
+.error-list { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.error-list a { color: inherit; text-decoration: underline; }
+.btn-danger-solid { color: #fff; background: #B5452E; }
+.btn-danger-solid:hover { background: #9C3A26; }
+.activity-actions { display: flex; gap: 10px; align-self: start; }
+.link-btn { background: none; border: 0; padding: 2px 0; font: 500 12px var(--font-ui); color: var(--text-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { color: var(--text); }
+.link-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; border-radius: 4px; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tab { padding: 8px 16px; border-radius: var(--radius-pill); text-decoration: none; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); font-weight: 500; }
+.tab:hover { color: var(--text); }
+.tab.active { background: linear-gradient(135deg, var(--btn-1), var(--btn-2)); color: var(--text-on-accent); border-color: transparent; }
+.tab-count { font-size: 12px; opacity: .85; margin-left: 4px; }
+.tab.alert-tab:not(.active) { color: var(--danger-text); }
+.nav-badge { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--danger-text); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; text-align: center; }

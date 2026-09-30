@@ -39,7 +39,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
         actions={
           <>
             <LinkButton href={`/contacts/${contact.id}/edit`} ghost>Редактировать</LinkButton>
-            <DeleteButton action={deleteContact.bind(null, contact.id)} confirmText={`Удалить контакт «${fullName}»?`} />
+            <DeleteButton action={deleteContact.bind(null, contact.id)} confirmText={`Удалить контакт «${fullName}»?`} consequences="Контакт можно удалить, только если он не связан со сделками и конвертированными лидами. Его активности будут удалены." />
           </>
         }
       />

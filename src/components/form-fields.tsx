@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useTransition } from "react";
+import { useActionState, useEffect, useId, useTransition } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { FormState } from "@/lib/form-state";
 
@@ -17,6 +17,14 @@ export function useServerForm(action: (prev: FormState, formData: FormData) => P
     const formData = new FormData(event.currentTarget);
     startTransition(() => formAction(formData));
   };
+  // После неудачной отправки переводим фокус на первое поле с ошибкой.
+  useEffect(() => {
+    if (state?.fieldErrors && Object.keys(state.fieldErrors).length > 0) {
+      const el = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+      el?.focus();
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [state]);
   return { state, onSubmit, pending };
 }
 
@@ -31,7 +39,7 @@ export function fieldsOf(state: FormState, initial: Record<string, string> = {})
 
 type Common = { label: string; name: string; defaultValue?: string; error?: string; required?: boolean; hint?: string; wide?: boolean };
 
-function Wrapper({ label, required, error, hint, wide, children }: Common & { children: ReactNode }) {
+function Wrapper({ label, required, error, hint, wide, children, errId }: Common & { children: ReactNode; errId: string }) {
   return (
     <label className={`field${wide ? " wide" : ""}`}>
       <span>
@@ -41,7 +49,7 @@ function Wrapper({ label, required, error, hint, wide, children }: Common & { ch
       {children}
       {hint && !error && <span className="hint">{hint}</span>}
       {error && (
-        <span className="hint-error" role="alert">
+        <span className="hint-error" id={errId}>
           {error}
         </span>
       )}
@@ -51,8 +59,9 @@ function Wrapper({ label, required, error, hint, wide, children }: Common & { ch
 
 export function TextField(props: Common & { type?: string; maxLength?: number; placeholder?: string; inputMode?: "decimal" | "tel" | "email" }) {
   const { name, defaultValue, error, required, type = "text", maxLength, placeholder, inputMode } = props;
+  const errId = `${useId()}-err`;
   return (
-    <Wrapper {...props}>
+    <Wrapper {...props} errId={errId}>
       <input
         className={`input${error ? " error" : ""}`}
         name={name}
@@ -63,6 +72,7 @@ export function TextField(props: Common & { type?: string; maxLength?: number; p
         placeholder={placeholder}
         inputMode={inputMode}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errId : undefined}
       />
     </Wrapper>
   );
@@ -70,9 +80,10 @@ export function TextField(props: Common & { type?: string; maxLength?: number; p
 
 export function TextAreaField(props: Common & { maxLength?: number }) {
   const { name, defaultValue, error, required, maxLength } = props;
+  const errId = `${useId()}-err`;
   return (
-    <Wrapper {...props}>
-      <textarea className={`input${error ? " error" : ""}`} name={name} defaultValue={defaultValue} required={required} maxLength={maxLength} aria-invalid={error ? true : undefined} />
+    <Wrapper {...props} errId={errId}>
+      <textarea className={`input${error ? " error" : ""}`} name={name} defaultValue={defaultValue} required={required} maxLength={maxLength} aria-invalid={error ? true : undefined} aria-describedby={error ? errId : undefined} />
     </Wrapper>
   );
 }
@@ -90,9 +101,10 @@ export function SelectField(
 ) {
   const { name, defaultValue, error, required, options, placeholder, disabled, value, onChange } = props;
   const controlled = value !== undefined ? { value, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) } : { defaultValue };
+  const errId = `${useId()}-err`;
   return (
-    <Wrapper {...props}>
-      <select className={`input${error ? " error" : ""}`} name={name} required={required} disabled={disabled} aria-invalid={error ? true : undefined} {...controlled}>
+    <Wrapper {...props} errId={errId}>
+      <select className={`input${error ? " error" : ""}`} name={name} required={required} disabled={disabled} aria-invalid={error ? true : undefined} aria-describedby={error ? errId : undefined} {...controlled}>
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -104,11 +116,33 @@ export function SelectField(
   );
 }
 
+/**
+ * Сообщение формы. Если есть ошибки полей, показывает их списком со ссылками: клик переводит фокус на поле.
+ * Ошибка без привязки к полю (нет связи с БД, правило бизнес-логики) выводится одной строкой.
+ */
 export function FormMessage({ state }: { state: FormState }) {
   if (!state?.message) return null;
+  const items = Object.entries(state.fieldErrors ?? {}).flatMap(([name, errors]) => (errors ?? []).slice(0, 1).map((text) => ({ name, text })));
+  const focusField = (e: React.MouseEvent<HTMLAnchorElement>, name: string) => {
+    e.preventDefault();
+    const el = e.currentTarget.closest("form")?.querySelector<HTMLElement>(`[name="${name}"]`);
+    el?.focus();
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
   return (
     <div className="alert" role="alert">
-      {state.message}
+      <div>{state.message}</div>
+      {items.length > 0 && (
+        <ul className="error-list">
+          {items.map((i) => (
+            <li key={i.name}>
+              <a href={`#${i.name}`} onClick={(e) => focusField(e, i.name)}>
+                {i.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

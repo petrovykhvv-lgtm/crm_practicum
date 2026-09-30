@@ -1,13 +1,30 @@
-import { formatDate } from "@/lib/labels";
-import { TaskToggle } from "./task-toggle";
+import { formatDate, toDateInput } from "@/lib/labels";
+import { ActivityRow, type ActivityRowData } from "./activity-row";
 
 type Item = { id: string; type: "note" | "task"; body: string; dueDate: Date | null; done: boolean; createdAt: Date };
 
-export function ActivityList({ items }: { items: Item[] }) {
-  if (items.length === 0) return <p className="muted">Активностей пока нет.</p>;
+/** Подготавливает данные строки: все даты и признаки считаются на сервере. */
+export function toActivityRow(a: Item, target?: ActivityRowData["target"]): ActivityRowData {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const open = a.type === "task" && !a.done && a.dueDate !== null;
+  return {
+    id: a.id,
+    type: a.type,
+    body: a.body,
+    done: a.done,
+    dueLabel: a.dueDate ? formatDate(a.dueDate) : null,
+    dueInput: toDateInput(a.dueDate),
+    createdLabel: formatDate(a.createdAt),
+    overdue: open && a.dueDate! < startOfToday,
+    today: open && a.dueDate! >= startOfToday && a.dueDate! < endOfToday,
+    target: target ?? null,
+  };
+}
+
+export function ActivityList({ items }: { items: Item[] }) {
+  if (items.length === 0) return <p className="muted">Активностей пока нет.</p>;
 
   // Сначала невыполненные задачи по сроку, затем остальное от новых к старым.
   const openTasks = items.filter((a) => a.type === "task" && !a.done).sort((a, b) => (a.dueDate?.getTime() ?? 0) - (b.dueDate?.getTime() ?? 0));
@@ -15,29 +32,9 @@ export function ActivityList({ items }: { items: Item[] }) {
 
   return (
     <div>
-      {[...openTasks, ...rest].map((a) => {
-        const overdue = a.type === "task" && !a.done && a.dueDate !== null && a.dueDate < startOfToday;
-        const today = a.type === "task" && !a.done && a.dueDate !== null && a.dueDate >= startOfToday && a.dueDate < endOfToday;
-        return (
-          <div key={a.id} className={`activity${a.done ? " done" : ""}`} style={{ gridTemplateColumns: a.type === "task" ? "auto 1fr" : "1fr", columnGap: 12 }}>
-            {a.type === "task" && <TaskToggle id={a.id} done={a.done} />}
-            <div>
-              <div className="body">{a.body}</div>
-              <div className="muted">
-                {a.type === "note" ? "Заметка" : a.done ? "Задача выполнена" : "Задача"} ·{" "}
-                {a.type === "task" ? (
-                  <span className={overdue ? "overdue" : undefined}>
-                    срок {formatDate(a.dueDate)}
-                    {overdue ? " (просрочена)" : today ? " (сегодня)" : ""}
-                  </span>
-                ) : (
-                  formatDate(a.createdAt)
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {[...openTasks, ...rest].map((a) => (
+        <ActivityRow key={a.id} row={toActivityRow(a)} />
+      ))}
     </div>
   );
 }

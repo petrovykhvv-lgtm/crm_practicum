@@ -38,7 +38,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         actions={
           <>
             <LinkButton href={`/accounts/${account.id}/edit`} ghost>Редактировать</LinkButton>
-            <DeleteButton action={deleteAccount.bind(null, account.id)} confirmText={`Удалить компанию «${account.name}»?`} />
+            <DeleteButton action={deleteAccount.bind(null, account.id)} confirmText={`Удалить компанию «${account.name}»?`} consequences="Компанию можно удалить, только если к ней не привязаны контакты, сделки и конвертированные лиды. Её активности будут удалены." />
           </>
         }
       />

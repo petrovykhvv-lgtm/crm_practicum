@@ -45,7 +45,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
         actions={
           <>
             <LinkButton href={`/leads/${lead.id}/edit`} ghost>Редактировать</LinkButton>
-            <DeleteButton action={deleteLead.bind(null, lead.id)} confirmText={`Удалить лида «${lead.name}»?`} />
+            <DeleteButton action={deleteLead.bind(null, lead.id)} confirmText={`Удалить лида «${lead.name}»?`} consequences="Лид и его активности (заметки и задачи) будут удалены без возможности восстановления." />
           </>
         }
       />

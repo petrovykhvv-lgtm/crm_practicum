@@ -115,7 +115,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { label: "Всего лидов", value: String(kpi.totalLeads), hint: `за период: ${kpi.newLeadsPeriod}`, color: "var(--teal)", icon: "users", href: "/leads" },
     { label: "Открытых сделок", value: String(kpi.openDeals), color: "var(--orange)", icon: "briefcase", href: "/opportunities?status=open" },
     { label: "Сумма открытых сделок", value: formatMoney(kpi.openDealsSum), color: "var(--green)", icon: "ruble", href: "/pipeline" },
-    { label: "Просроченных задач", value: String(kpi.overdueTasks), hint: `на сегодня: ${kpi.todayTasks}`, color: "var(--danger)", icon: "alert", alert: kpi.overdueTasks > 0 },
+    { label: "Просроченных задач", value: String(kpi.overdueTasks), hint: `на сегодня: ${kpi.todayTasks}`, color: "var(--danger)", icon: "alert", alert: kpi.overdueTasks > 0, href: "/tasks?view=overdue" },
   ];
   const secondary: Kpi[] = [
     { label: "Конверсия лидов", value: `${kpi.conversionPct}%`, hint: "лиды периода", color: "var(--forest)", icon: "percent" },

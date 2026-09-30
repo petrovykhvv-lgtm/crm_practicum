@@ -1,34 +1,44 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import type { FormState } from "@/lib/form-state";
+import { ConfirmDialog } from "./confirm-dialog";
 
+/**
+ * Кнопка «Удалить» с собственным окном подтверждения. Если бэкенд отказывает (например, есть связанные записи),
+ * окно остаётся открытым и показывает причину; при успехе Server Action сам перенаправляет на список.
+ */
 export function DeleteButton({
   action,
   confirmText,
+  consequences,
   label = "Удалить",
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
+  /** Заголовок окна, например «Удалить лида «Иван»?». */
   confirmText: string;
+  /** Пояснение последствий. */
+  consequences?: string;
   label?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, run] = useActionState(action, undefined);
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  function confirm() {
+    startTransition(() => run(new FormData()));
+  }
+
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (!window.confirm(confirmText)) e.preventDefault();
-      }}
-      style={{ display: "grid", gap: 8 }}
-    >
-      <button className="btn btn-danger" type="submit" disabled={pending}>
-        {pending ? "Удаление…" : label}
+    <>
+      <button className="btn btn-danger" type="button" onClick={() => setOpen(true)}>
+        {label}
       </button>
-      {state?.message && (
-        <div className="alert" role="alert" style={{ maxWidth: 420 }}>
-          {state.message}
-        </div>
+      {open && (
+        <ConfirmDialog title={confirmText} confirmLabel={label} pending={pending} error={state?.message ?? null} onConfirm={confirm} onCancel={() => setOpen(false)}>
+          {consequences ?? "Действие нельзя отменить."}
+        </ConfirmDialog>
       )}
-    </form>
+    </>
   );
 }
