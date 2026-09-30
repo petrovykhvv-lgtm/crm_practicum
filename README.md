@@ -281,4 +281,5 @@ npm run dev                # http://localhost:3000
 ## Дизайн
 
 Дизайн-система (v1.1: навигация в шапке, воронка из шести колонок без горизонтального скролла): [design/design-system.html](design/design-system.html).
+Логотип: `public/logo.webp` (в шапке, ссылка на главную), иконка вкладки `src/app/icon.png` собрана из знака логотипа. Правила использования описаны в разделе «Логотип» дизайн-системы.
 Технические границы: [docs/technical-boundaries.md](docs/technical-boundaries.md).

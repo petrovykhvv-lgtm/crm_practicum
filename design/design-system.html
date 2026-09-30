@@ -105,6 +105,10 @@ h3 { font-size: 20px; }
 .g-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 
+/* Логотип */
+.brand-logo { display: flex; align-items: center; flex: none; }
+.brand-logo img { height: 60px; width: auto; display: block; }
+
 /* Палитра */
 .sw { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--line); background: var(--surface-solid); }
 .sw i { display: block; height: 56px; }
@@ -214,6 +218,20 @@ tr:hover td { background: rgba(255,255,255,.35); }
   </section>
 
   <section class="glass">
+    <h2>Логотип</h2>
+    <div class="row" style="gap:24px;align-items:center">
+      <div style="background:#fff;border:1px solid var(--line);border-radius:var(--radius-md);padding:16px 24px"><img src="../public/logo.webp" alt="Логотип: Выставочные стенды и бренд-зоны" style="height:84px;width:auto;display:block"></div>
+      <ul style="padding-left:18px;display:grid;gap:4px;color:var(--text-muted);max-width:60ch">
+        <li>Файл: <code>public/logo.webp</code> (прозрачный фон, 1000×334), иконка вкладки <code>src/app/icon.png</code> собрана из знака.</li>
+        <li>Цвета логотипа (тёмно-зелёный и оранжевый) совпадают с палитрой: Forest <code>#1F5142</code> и Orange <code>#E8853D</code>.</li>
+        <li>В шапке высота 60 px (44 px на телефоне), ширина автоматически. Минимальная высота 40 px, иначе подпись «и бренд-зоны» нечитаема.</li>
+        <li>Только на светлом фоне. В тёмной теме логотип ставится на светлую плашку <code>#FBF8F3</code>. Вокруг логотипа свободное поле не меньше 8 px, не растягивать и не перекрашивать.</li>
+        <li>Логотип в шапке всегда ссылка на главную страницу.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="glass">
     <h2>Типографика</h2>
     <div class="type-row"><small>Display 44 / Cormorant</small><span style="font:600 44px/1.1 var(--font-display)">Воронка сделок</span></div>
     <div class="type-row"><small>Heading 28</small><span style="font:600 28px var(--font-display)">Карточка компании</span></div>
@@ -261,7 +279,7 @@ tr:hover td { background: rgba(255,255,255,.35); }
     <h2>Шапка и навигация</h2>
     <p class="lead" style="margin:0 0 14px">Навигация живёт в шапке: логотип, разделы и поиск в одну строку. Шапка липкая, на ширине до 1100 px разделы уходят на вторую строку, на узких экранах прокручиваются по горизонтали.</p>
     <header class="topbar">
-      <div class="brand">CRM-lite<small>Выставочные стенды и бренд-зоны</small></div>
+      <a class="brand-logo"><img src="../public/logo.webp" alt="Выставочные стенды и бренд-зоны"></a>
       <nav class="nav"><a>Дашборд</a><a>Лиды</a><a class="active">Воронка</a><a>Компании</a><a>Контакты</a><a>Сделки</a></nav>
       <input class="input search" type="search" placeholder="Поиск по CRM…" aria-label="Поиск по CRM">
     </header>
@@ -314,6 +332,7 @@ tr:hover td { background: rgba(255,255,255,.35); }
       <li>На телефоне (до 600 px) в таблицах остаются главные колонки, остальное скрывается классом <code>hide-sm</code>.</li>
       <li>Вкладки-«таблетки» для фильтров (Задачи): активная с бронзовым градиентом и счётчиком, вкладка с просрочкой окрашена в цвет ошибки. Счётчик просроченных в меню: красный кружок рядом с пунктом.</li>
       <li>Окно подтверждения удаления: стеклянная модалка, красная кнопка действия <code>#B5452E</code>, фокус на «Отмена», последствия описаны текстом, ошибка бэкенда показывается внутри окна. Ошибки форм: сводный список со ссылками на поля, фокус на первом невалидном поле.</li>
+      <li>Шапка зафиксирована сверху (<code>position: sticky; top: 0</code>) сплошной полосой на всю ширину: непрозрачный фон страницы, белая «таблетка» внутри, тень снизу. Прозрачность и зазор над шапкой запрещены: под ней проезжает контент, и полупрозрачная шапка даёт наложение надписей. На экранах до 1100 px шапка не фиксируется (она высокая из-за второй строки меню). Для якорей и фокуса задан <code>scroll-padding-top</code>.</li>
       <li>Навигация в шапке, а не в боковой панели: это освобождает ширину под контент, в первую очередь под воронку.</li>
       <li>Перетаскивание карточек воронки: курсор <code>grab</code>, перетаскиваемая карточка полупрозрачная, колонка-цель получает пунктирную бронзовую рамку и лёгкую заливку. Причина отказа вводится в модальном окне на стеклянной поверхности.</li>
       <li>Воронка не скроллится по горизонтали: колонки <code>repeat(6, minmax(0, 1fr))</code>, на меньших экранах 3 и 1.</li>

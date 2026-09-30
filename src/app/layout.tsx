@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import { Nav } from "@/components/nav";
 import { db } from "@/lib/db";
@@ -20,17 +22,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="ru" className={`${display.variable} ${ui.variable}`}>
       <body>
-        <div className="shell">
-          <header className="topbar glass">
-            <div className="brand">
-              CRM-lite
-              <small>Выставочные стенды и бренд-зоны</small>
-            </div>
+        {/* Фиксированная шапка: сплошная полоса на всю ширину, контент под неё не просвечивает */}
+        <header className="topbar-wrap">
+          <div className="topbar glass">
+            <Link href="/" className="brand-logo" aria-label="CRM-lite: выставочные стенды и бренд-зоны, на главную">
+              <Image src="/logo.webp" alt="Выставочные стенды и бренд-зоны" width={1000} height={334} sizes="190px" priority />
+            </Link>
             <Nav overdueTasks={overdueTasks} />
             <form action="/search" method="get" className="search-box" role="search">
               <input className="input" type="search" name="q" placeholder="Поиск по CRM…" aria-label="Поиск по CRM" />
             </form>
-          </header>
+          </div>
+        </header>
+        <div className="shell">
           <main className="content">{children}</main>
         </div>
       </body>
