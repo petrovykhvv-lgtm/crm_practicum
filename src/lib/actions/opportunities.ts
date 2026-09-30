@@ -56,7 +56,11 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
   try {
     const built = await buildData(parsed.data, rawValues(formData), null);
     if (built.error) return built.error;
-    id = (await db.opportunity.create({ data: built.data })).id;
+    id = (
+      await db.opportunity.create({
+        data: { ...built.data, transitions: { create: { stageId: built.data.stageId, amount: built.data.amount } } },
+      })
+    ).id;
   } catch (error) {
     return actionError(error, rawValues(formData));
   }
@@ -69,11 +73,18 @@ export async function updateOpportunity(id: string, _prev: FormState, formData: 
   if (!parsed.ok) return parsed.state;
 
   try {
-    const existing = await db.opportunity.findUnique({ where: { id }, select: { closedAt: true } });
+    const existing = await db.opportunity.findUnique({ where: { id }, select: { closedAt: true, stageId: true } });
     if (!existing) return { message: "Сделка не найдена: возможно, её уже удалили." };
     const built = await buildData(parsed.data, rawValues(formData), existing.closedAt);
     if (built.error) return built.error;
-    await db.opportunity.update({ where: { id }, data: built.data });
+    await db.opportunity.update({
+      where: { id },
+      data: {
+        ...built.data,
+        // Переход на новую стадию фиксируется в истории для динамики на дашборде.
+        ...(built.data.stageId !== existing.stageId ? { transitions: { create: { stageId: built.data.stageId, amount: built.data.amount } } } : {}),
+      },
+    });
   } catch (error) {
     return actionError(error, rawValues(formData));
   }
@@ -87,7 +98,7 @@ export type ChangeStageResult = { ok: true } | { ok: false; message: string };
 export async function changeStage(opportunityId: string, stageId: string, lostReason: string | null): Promise<ChangeStageResult> {
   try {
     const [deal, stage] = await Promise.all([
-      db.opportunity.findUnique({ where: { id: opportunityId }, select: { amount: true, contactId: true, closedAt: true, lostReason: true } }),
+      db.opportunity.findUnique({ where: { id: opportunityId }, select: { amount: true, contactId: true, closedAt: true, lostReason: true, stageId: true } }),
       db.stage.findUnique({ where: { id: stageId } }),
     ]);
     if (!deal) return { ok: false, message: "Сделка не найдена: возможно, её уже удалили." };
@@ -105,6 +116,7 @@ export async function changeStage(opportunityId: string, stageId: string, lostRe
         status,
         closedAt: status === "open" ? null : (deal.closedAt ?? new Date()),
         lostReason: status === "lost" ? reason : null,
+        ...(stage.id !== deal.stageId ? { transitions: { create: { stageId: stage.id, amount: deal.amount } } } : {}),
       },
     });
   } catch (error) {

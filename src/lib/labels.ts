@@ -63,3 +63,21 @@ export function toDateInput(value: Date | null | undefined): string {
 export function toAmountInput(value: { toString(): string } | null | undefined): string {
   return value === null || value === undefined ? "" : String(Number(value.toString()));
 }
+
+/** Цвета для диаграмм (canvas не понимает CSS-переменные, поэтому здесь конкретные значения). */
+export const stageChartColors: Record<string, string> = {
+  new: "#6F97A8",
+  qualification: "#A9BFAF",
+  proposal: "#E7C9A0",
+  negotiation: "#E8853D",
+  won: "#2F8A63",
+  lost: "#B9A99B",
+};
+
+export const leadStatusChartColors: Record<LeadStatusValue, string> = {
+  new: "#6F97A8",
+  in_progress: "#D89A2B",
+  qualified: "#2F8A63",
+  converted: "#1F5142",
+  disqualified: "#B9A99B",
+};

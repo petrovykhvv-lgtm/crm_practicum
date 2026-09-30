@@ -67,6 +67,7 @@ export async function convertLead(leadId: string, _prev: FormState, formData: Fo
             accountId,
             contactId: contact.id,
             leadId,
+            transitions: { create: { stageId: stage.id, amount: d.amount } },
           },
         });
       }

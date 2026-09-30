@@ -16,6 +16,7 @@ const EXPECTED = { leads: 6, accounts: 4, contacts: 5, opportunities: 6, activit
 async function main() {
   // Идемпотентность: seed всегда начинает с чистых таблиц.
   await prisma.activity.deleteMany();
+  await prisma.stageTransition.deleteMany();
   await prisma.opportunity.deleteMany();
   await prisma.lead.deleteMany();
   await prisma.contact.deleteMany();
@@ -75,12 +76,28 @@ async function main() {
   await prisma.opportunity.createMany({
     data: [
       { id: "opp_1", title: "Стенд на Агропродмаш", stageId: "stage_new", status: "open", amount: 450_000, accountId: "acc_fresh", contactId: "con_smirnov", venue: "Экспоцентр" },
-      { id: "opp_2", title: "Стенд 36 м² на MosBuild", stageId: "stage_qualification", status: "open", amount: 1_200_000, accountId: "acc_expo", contactId: "con_orlov", venue: "Крокус Экспо", eventDate: at(75) },
+      { id: "opp_2", title: "Стенд 36 м² на MosBuild", stageId: "stage_qualification", status: "open", amount: 1_200_000, accountId: "acc_expo", contactId: "con_orlov", venue: "Крокус Экспо", eventDate: at(75), updatedAt: at(-20) },
       { id: "opp_3", title: "Бренд-зона в ТЦ", stageId: "stage_proposal", status: "open", amount: 2_750_000, accountId: "acc_nordic", contactId: "con_kim", venue: "ТЦ «Галерея»", eventDate: at(50) },
       { id: "opp_4", title: "Pop-up стенд", stageId: "stage_negotiation", status: "open", amount: 640_000, accountId: "acc_expo", contactId: "con_petrova", venue: "Экспоцентр", eventDate: at(30) },
       { id: "opp_5", title: "Стенд на Иннопром", stageId: "stage_won", status: "won", amount: 3_900_000, closedAt: at(-6), accountId: "acc_techno", contactId: "con_lebedeva", leadId: "lead_5", venue: "Экспо-центр Екатеринбург" },
       { id: "opp_6", title: "Выставка «Мебель»", stageId: "stage_lost", status: "lost", amount: 980_000, closedAt: at(-15), lostReason: "Выбрали другого подрядчика", accountId: "acc_nordic", contactId: "con_kim" },
     ],
+  });
+
+  // История переходов по стадиям: из неё строится динамика объёмов на дашборде.
+  // [сделка, сумма, [[стадия, дней назад], ...]]
+  const history: [string, number, [string, number][]][] = [
+    ["opp_1", 450_000, [["new", 3]]],
+    ["opp_2", 1_200_000, [["new", 38], ["qualification", 30]]],
+    ["opp_3", 2_750_000, [["new", 35], ["qualification", 28], ["proposal", 12]]],
+    ["opp_4", 640_000, [["new", 25], ["qualification", 18], ["proposal", 10], ["negotiation", 4]]],
+    ["opp_5", 3_900_000, [["new", 50], ["qualification", 44], ["proposal", 30], ["negotiation", 16], ["won", 6]]],
+    ["opp_6", 980_000, [["new", 40], ["qualification", 33], ["lost", 15]]],
+  ];
+  await prisma.stageTransition.createMany({
+    data: history.flatMap(([opportunityId, amount, steps]) =>
+      steps.map(([stage, daysAgo]) => ({ opportunityId, amount, stageId: `stage_${stage}`, createdAt: at(-daysAgo, 10) })),
+    ),
   });
 
   // Активности (8): 2 заметки и 6 задач

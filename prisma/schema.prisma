@@ -105,6 +105,7 @@ model Stage {
   position      Int           @unique
   isClosed      Boolean       @default(false)
   opportunities Opportunity[]
+  transitions   StageTransition[]
 }
 
 model Opportunity {
@@ -127,10 +128,26 @@ model Opportunity {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   activities Activity[]
+  transitions StageTransition[]
 
   @@index([status])
   @@index([stageId])
   @@index([accountId])
+}
+
+/// История попаданий сделки на стадии воронки. Из неё строится динамика объёмов по этапам на дашборде.
+/// amount — сумма сделки на момент перехода.
+model StageTransition {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  stageId       String
+  stage         Stage       @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  amount        Decimal?    @db.Decimal(14, 2)
+  createdAt     DateTime    @default(now())
+
+  @@index([stageId, createdAt])
+  @@index([opportunityId])
 }
 
 model Activity {

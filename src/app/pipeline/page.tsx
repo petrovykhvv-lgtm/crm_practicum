@@ -1,9 +1,8 @@
-import Link from "next/link";
+import { PipelineBoard, type BoardColumn } from "@/components/pipeline-board";
 import { QuickDealForm } from "@/components/quick-deal-form";
-import { StageMover } from "@/components/stage-mover";
-import { Badge, Card, PageHeader } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
-import { formatDate, formatMoney, opportunityStatusColors, opportunityStatusLabels, stageColors } from "@/lib/labels";
+import { formatMoney, stageColors } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +18,22 @@ export default async function PipelinePage() {
   ]);
   const stageOptions = stages.map((s) => ({ id: s.id, code: s.code, name: s.name }));
   const totalOpen = stages.filter((s) => !s.isClosed).reduce((sum, s) => sum + s.opportunities.reduce((x, o) => x + Number(o.amount ?? 0), 0), 0);
+  // Только простые данные: клиентский компонент получает готовую структуру.
+  const columns: BoardColumn[] = stages.map((stage) => ({
+    id: stage.id,
+    code: stage.code,
+    name: stage.name,
+    color: stageColors[stage.code] ?? "var(--teal)",
+    deals: stage.opportunities.map((o) => ({
+      id: o.id,
+      title: o.title,
+      account: o.account.name,
+      contact: o.contact ? `${o.contact.lastName} ${o.contact.firstName}` : null,
+      amount: o.amount === null ? null : Number(o.amount.toString()),
+      status: o.status,
+      eventDate: o.eventDate ? o.eventDate.toISOString() : null,
+    })),
+  }));
   const dealsCount = stages.reduce((n, s) => n + s.opportunities.length, 0);
 
   return (
@@ -34,37 +49,7 @@ export default async function PipelinePage() {
           </div>
         </details>
       </Card>
-      <div className="kanban-board">
-        {stages.map((stage) => {
-          const sum = stage.opportunities.reduce((x, o) => x + Number(o.amount ?? 0), 0);
-          return (
-            <section key={stage.id} className="kanban-col" aria-label={stage.name}>
-              <header className="kanban-head" style={{ ["--c" as string]: stageColors[stage.code] ?? "var(--teal)" }}>
-                <span className="kanban-title">{stage.name}</span>
-                <span className="muted">
-                  {stage.opportunities.length} · {formatMoney(sum)}
-                </span>
-              </header>
-              {stage.opportunities.length === 0 && <p className="muted" style={{ padding: "8px 4px" }}>Нет сделок</p>}
-              {stage.opportunities.map((o) => (
-                <article key={o.id} className="deal" style={{ ["--c" as string]: stageColors[stage.code] ?? "var(--teal)" }}>
-                  <Link href={`/opportunities/${o.id}`} className="deal-title">
-                    {o.title}
-                  </Link>
-                  <span className="muted">{o.account.name}</span>
-                  {o.contact && <span className="muted">{o.contact.lastName} {o.contact.firstName}</span>}
-                  <span className="deal-sum">{formatMoney(o.amount)}</span>
-                  <span className="row" style={{ gap: 6 }}>
-                    <Badge color={opportunityStatusColors[o.status]}>{opportunityStatusLabels[o.status]}</Badge>
-                    {o.eventDate && <span className="muted">{formatDate(o.eventDate)}</span>}
-                  </span>
-                  <StageMover opportunityId={o.id} currentStageId={stage.id} stages={stageOptions} compact />
-                </article>
-              ))}
-            </section>
-          );
-        })}
-      </div>
+      <PipelineBoard columns={columns} stages={stageOptions} />
     </>
   );
 }

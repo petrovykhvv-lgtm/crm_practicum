@@ -187,3 +187,80 @@ dl.dl a { text-decoration: underline; text-decoration-color: var(--line); }
 .deal-sum { font-family: var(--font-display); font-size: 20px; }
 details > summary::-webkit-details-marker { display: none; }
 .activity { display: grid; }
+
+.kpi-card { padding: 18px 20px; display: grid; gap: 4px; text-decoration: none; align-content: start; }
+a.kpi-card { transition: transform .15s; }
+a.kpi-card:hover { transform: translateY(-2px); }
+.kpi .ico { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 22%, white); color: var(--c); font-weight: 600; margin-bottom: 6px; }
+.kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .kpi-grid, .kpi-grid-3 { grid-template-columns: minmax(0, 1fr); } }
+.shares { display: grid; gap: 14px; }
+.share { display: grid; gap: 6px; }
+.share-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.share-bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.share-bar span { display: block; height: 100%; border-radius: 999px; }
+
+.chart-frame { position: relative; flex: 1; min-height: 420px; }
+.chart-fill { position: absolute; inset: 0; }
+.card-fill { display: flex; flex-direction: column; }
+.chart-badge { position: absolute; right: 4px; bottom: 4px; background: rgba(210,100,75,.12); border: 1px solid rgba(210,100,75,.35); color: #9c3e29; border-radius: var(--radius-pill); padding: 6px 14px; font-size: 12px; }
+.chart-badge b { font-weight: 600; }
+@media (prefers-color-scheme: dark) { .chart-badge { color: #f0a08c; } }
+.trend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+.trend-grid .trend:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.trend-title { font-family: var(--font-display); font-size: 18px; text-align: center; margin-bottom: 2px; }
+.funnel-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: stretch; }
+@media (max-width: 900px) { .funnel-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .trend-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Все KPI в одну строку: 7 карточек на десктопе, 4 на планшете, 2 на телефоне */
+.kpi-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
+.kpi-row .kpi-card { padding: 14px 14px 12px; gap: 2px; }
+.kpi-row .kpi .ico { width: 28px; height: 28px; border-radius: 10px; font-size: 13px; margin-bottom: 4px; }
+.kpi-row .kpi .v { font-size: clamp(19px, 1.9vw, 30px); overflow-wrap: anywhere; }
+.kpi-row .kpi .l { font-size: 12px; line-height: 1.25; }
+.kpi-row .kpi .hint { font-size: 11px; }
+@media (max-width: 1000px) { .kpi-row { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi-row .kpi .v { font-size: 26px; } }
+@media (max-width: 560px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Сводки и списки дашборда: четыре блока в одну строку */
+.dash-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.dash-row .glass { padding: 16px; }
+.dash-row .card-title { font-size: 18px; flex-direction: column; align-items: flex-start; gap: 2px; margin-bottom: 12px; line-height: 1.2; }
+.dash-row .card-title small { font-size: 11px; }
+.dash-row .list-item { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 0; font-size: 13px; }
+.dash-row .list-item .row { gap: 8px; }
+.dash-row .share-row { flex-wrap: wrap; gap: 2px 8px; font-size: 13px; }
+.dash-row .shares { gap: 10px; }
+@media (max-width: 900px) { .dash-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .dash-row { grid-template-columns: minmax(0, 1fr); } }
+
+.attention .reason { font-size: 12px; }
+
+/* Четыре блока ряда одной высоты, содержимое прокручивается внутри */
+.dash-row { --dash-h: 440px; }
+.dash-card { height: var(--dash-h); display: flex; flex-direction: column; overflow: hidden; }
+.dash-card .card-title { flex: none; }
+.card-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.dash-row .list.card-scroll { align-content: start; }
+.dash-row .shares.card-scroll { align-content: start; }
+.attention-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; }
+.attention-sum { font-family: var(--font-display); font-size: 17px; white-space: nowrap; }
+
+.share-sum { font-size: 11px; color: var(--text-muted); }
+
+.period-controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; padding: 14px 18px; }
+.period-controls .field { min-width: 150px; }
+.period-controls .input { padding: 8px 14px; }
+.period-hint { flex-basis: 100%; margin: 0; }
+
+/* Перетаскивание карточек воронки */
+.deal[draggable="true"] { cursor: grab; }
+.deal[draggable="true"]:active { cursor: grabbing; }
+.deal.dragging { opacity: .4; transform: rotate(1deg); }
+.kanban-col { transition: outline-color .1s, background .1s; outline: 2px dashed transparent; outline-offset: -2px; }
+.kanban-col.drop-target { outline-color: var(--bronze-2); background: color-mix(in srgb, var(--bronze-1) 14%, var(--surface)); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(40, 28, 18, .35); display: grid; place-items: center; padding: 16px; }
+.modal { width: min(440px, 100%); background: var(--surface-solid); }

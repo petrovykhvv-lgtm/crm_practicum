@@ -36,9 +36,9 @@ export function Badge({ color, children }: { color: string; children: ReactNode 
   );
 }
 
-export function Card({ title, aside, children }: { title?: string; aside?: ReactNode; children: ReactNode }) {
+export function Card({ title, aside, children, className }: { title?: string; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className="glass">
+    <section className={className ? `glass ${className}` : "glass"}>
       {title && (
         <h2 className="card-title">
           {title}
