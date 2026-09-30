@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActivityList } from "@/components/activity-list";
+import { ActivitySection } from "@/components/activity-section";
+import { StageMover } from "@/components/stage-mover";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
 import { deleteOpportunity } from "@/lib/actions/opportunities";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const stages = await db.stage.findMany({ orderBy: { position: "asc" } });
   const deal = await db.opportunity.findUnique({
     where: { id },
     include: { account: true, contact: true, stage: true, lead: true, activities: { orderBy: { createdAt: "desc" } } },
@@ -51,9 +53,13 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
             ]}
           />
         </Card>
-        <Card title="Активности" aside={`${deal.activities.length}`}>
-          <ActivityList items={deal.activities} />
-        </Card>
+        <div className="content">
+          <Card title="Стадия сделки">
+            <StageMover opportunityId={deal.id} currentStageId={deal.stageId} stages={stages.map((s) => ({ id: s.id, code: s.code, name: s.name }))} />
+            <p className="muted" style={{ marginTop: 8 }}>«Выиграна» требует сумму и контакт, «Проиграна» требует причину отказа.</p>
+          </Card>
+          <ActivitySection kind="opportunity" id={deal.id} items={deal.activities} />
+        </div>
       </div>
     </>
   );

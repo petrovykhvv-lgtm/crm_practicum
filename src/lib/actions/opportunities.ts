@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { statusForStage, stageRuleError } from "@/lib/opportunity-rules";
 import { opportunitySchema } from "@/lib/validation";
 import { actionError, rawValues, fieldError, parseForm, type FormState } from "./shared";
 
@@ -33,15 +34,10 @@ async function buildData(data: Parsed, values: Record<string, string>, closedAtB
     return { error: fieldError(values, "contactId", "Контакт принадлежит другой компании") };
   }
 
-  if (stage.code === "won") {
-    if (!data.amount || data.amount <= 0) return { error: fieldError(values, "amount", "Для стадии «Выиграна» укажите сумму больше 0") };
-    if (!data.contactId) return { error: fieldError(values, "contactId", "Для стадии «Выиграна» выберите контакт") };
-  }
-  if (stage.code === "lost" && !data.lostReason) {
-    return { error: fieldError(values, "lostReason", "Для стадии «Проиграна» укажите причину отказа") };
-  }
+  const ruleError = stageRuleError(stage.code, data);
+  if (ruleError) return { error: fieldError(values, ruleError.field, ruleError.message) };
 
-  const status = stage.code === "won" ? "won" : stage.code === "lost" ? "lost" : "open";
+  const status = statusForStage(stage.code);
   return {
     data: {
       ...data,
@@ -83,6 +79,39 @@ export async function updateOpportunity(id: string, _prev: FormState, formData: 
   }
   revalidateOpportunities(id);
   redirect(`/opportunities/${id}`);
+}
+
+export type ChangeStageResult = { ok: true } | { ok: false; message: string };
+
+/** Перевод сделки на другую стадию воронки с теми же правилами won/lost, что и в форме сделки. */
+export async function changeStage(opportunityId: string, stageId: string, lostReason: string | null): Promise<ChangeStageResult> {
+  try {
+    const [deal, stage] = await Promise.all([
+      db.opportunity.findUnique({ where: { id: opportunityId }, select: { amount: true, contactId: true, closedAt: true, lostReason: true } }),
+      db.stage.findUnique({ where: { id: stageId } }),
+    ]);
+    if (!deal) return { ok: false, message: "Сделка не найдена: возможно, её уже удалили." };
+    if (!stage) return { ok: false, message: "Стадия не найдена." };
+
+    const reason = lostReason?.trim() || deal.lostReason;
+    const ruleError = stageRuleError(stage.code, { amount: deal.amount, contactId: deal.contactId, lostReason: reason });
+    if (ruleError) return { ok: false, message: ruleError.message };
+
+    const status = statusForStage(stage.code);
+    await db.opportunity.update({
+      where: { id: opportunityId },
+      data: {
+        stageId: stage.id,
+        status,
+        closedAt: status === "open" ? null : (deal.closedAt ?? new Date()),
+        lostReason: status === "lost" ? reason : null,
+      },
+    });
+  } catch (error) {
+    return { ok: false, message: actionError(error).message ?? "Не удалось сменить стадию." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function deleteOpportunity(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {

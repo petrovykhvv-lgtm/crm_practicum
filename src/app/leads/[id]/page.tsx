@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActivityList } from "@/components/activity-list";
+import { ActivitySection } from "@/components/activity-section";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
 import { deleteLead } from "@/lib/actions/leads";
@@ -98,9 +98,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               />
             </Card>
           )}
-          <Card title="Активности" aside={`${lead.activities.length}`}>
-            <ActivityList items={lead.activities} />
-          </Card>
+          <ActivitySection kind="lead" id={lead.id} items={lead.activities} />
         </div>
       </div>
     </>

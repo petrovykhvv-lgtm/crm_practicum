@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActivityList } from "@/components/activity-list";
+import { ActivitySection } from "@/components/activity-section";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
 import { deleteAccount } from "@/lib/actions/accounts";
@@ -79,9 +79,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </Card>
-    <Card title="Активности" aside={`${account.activities.length}`}>
-        <ActivityList items={account.activities} />
-      </Card>
+    <ActivitySection kind="account" id={account.id} items={account.activities} />
     </>
   );
 }

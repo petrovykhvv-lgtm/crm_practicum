@@ -159,3 +159,17 @@ export const convertLeadSchema = z
       ctx.addIssue({ code: "custom", path: ["dealTitle"], message: "Название сделки: обязательное поле" });
     }
   });
+
+/* ---------- Активность ---------- */
+
+export const activitySchema = z
+  .object({
+    type: z.enum(["note", "task"], { error: "Тип: выберите заметку или задачу" }),
+    body: required("Текст", 2000),
+    dueDate: optionalDate("Срок"),
+  })
+  .superRefine((a, ctx) => {
+    if (a.type === "task" && !a.dueDate) {
+      ctx.addIssue({ code: "custom", path: ["dueDate"], message: "Для задачи укажите срок выполнения" });
+    }
+  });
