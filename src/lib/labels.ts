@@ -2,6 +2,9 @@ export const LEAD_SOURCES = ["site", "email", "phone", "referral", "manual"] as 
 export const LEAD_STATUSES = ["new", "in_progress", "qualified", "converted", "disqualified"] as const;
 export const EDITABLE_LEAD_STATUSES = ["new", "in_progress", "qualified", "disqualified"] as const;
 
+/** Значение выбора компании при конвертации: создать новую. */
+export const NEW_ACCOUNT = "new";
+
 export type LeadSourceValue = (typeof LEAD_SOURCES)[number];
 export type LeadStatusValue = (typeof LEAD_STATUSES)[number];
 

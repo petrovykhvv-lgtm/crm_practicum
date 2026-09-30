@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EDITABLE_LEAD_STATUSES, LEAD_SOURCES } from "@/lib/labels";
+import { EDITABLE_LEAD_STATUSES, LEAD_SOURCES, NEW_ACCOUNT } from "@/lib/labels";
 
 const required = (label: string, max = 200) =>
   z
@@ -129,3 +129,33 @@ export const opportunitySchema = z.object({
   eventDate: optionalDate("Дата мероприятия"),
   lostReason: optional("Причина отказа", 500),
 });
+
+/* ---------- Конвертация лида ---------- */
+
+export const convertLeadSchema = z
+  .object({
+    firstName: required("Имя", 100),
+    lastName: required("Фамилия", 100),
+    position: optional("Должность"),
+    email: optionalEmail,
+    phone: optionalPhone,
+    /** "new" — создать компанию, иначе id существующей компании. */
+    accountChoice: requiredId("Компания"),
+    accountName: optional("Название компании", 200),
+    createDeal: z
+      .string()
+      .optional()
+      .transform((v) => v === "on"),
+    dealTitle: optional("Название сделки", 200),
+    amount: optionalMoney("Сумма"),
+    venue: optional("Площадка"),
+    eventDate: optionalDate("Дата мероприятия"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.accountChoice === NEW_ACCOUNT && !data.accountName) {
+      ctx.addIssue({ code: "custom", path: ["accountName"], message: "Название компании: обязательное поле" });
+    }
+    if (data.createDeal && !data.dealTitle) {
+      ctx.addIssue({ code: "custom", path: ["dealTitle"], message: "Название сделки: обязательное поле" });
+    }
+  });

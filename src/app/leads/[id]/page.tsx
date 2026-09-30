@@ -79,11 +79,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     <li>по желанию сделка на стадии «Новая»{lead.budget ? ` с суммой ${formatMoney(lead.budget)}` : ""}.</li>
                   </ul>
                   <div>
-                    <button className="btn btn-primary" type="button" disabled title="Действие конвертации подключается на следующем шаге">
-                      Конвертировать
-                    </button>
+                    <LinkButton href={`/leads/${lead.id}/convert`}>Конвертировать</LinkButton>
                   </div>
-                  <p className="muted">Кнопка станет активной, когда будет реализовано действие конвертации.</p>
                 </div>
               ) : (
                 <p className="muted">Конвертация недоступна: лид отклонён. Верните его в статус «В работе» через редактирование.</p>

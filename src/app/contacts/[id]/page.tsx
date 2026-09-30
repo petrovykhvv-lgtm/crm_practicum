@@ -15,6 +15,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
     where: { id },
     include: {
       account: true,
+      leads: true,
       opportunities: { orderBy: { createdAt: "desc" }, include: { stage: true } },
       activities: { orderBy: { createdAt: "desc" } },
     },
@@ -43,6 +44,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
               ["Должность", contact.position],
               ["Email", contact.email],
               ["Телефон", contact.phone],
+              ["Исходный лид", contact.leads.length ? <span key="l">{contact.leads.map((l, i) => <span key={l.id}>{i > 0 && ", "}<Link href={`/leads/${l.id}`}>{l.name}</Link></span>)}</span> : null],
             ]}
           />
         </Card>
