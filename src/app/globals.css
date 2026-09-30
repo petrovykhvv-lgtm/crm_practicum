@@ -1,0 +1,88 @@
+/* Токены перенесены из design/design-system.html */
+:root {
+  /* Фон и поверхности */
+  --bg: #F3ECE2;
+  --bg-2: #E9E1D3;
+  --surface: rgba(255, 255, 255, .58);
+  --surface-solid: #FBF8F3;
+  --surface-border: rgba(255, 255, 255, .75);
+  --line: rgba(90, 64, 40, .12);
+
+  /* Текст */
+  --text: #3A2A1E;
+  --text-muted: #85766A;
+  --text-on-accent: #FFF9F2;
+
+  /* Акценты */
+  --bronze-1: #D19A6A;
+  --bronze-2: #A86B3E;
+  --orange: #E8853D;
+  --forest: #1F5142;
+  --green: #2F8A63;
+  --teal: #6F97A8;
+  --sage: #A9BFAF;
+  --sand: #E7C9A0;
+
+  /* Семантика */
+  --success: #2F8A63;
+  --warning: #D89A2B;
+  --danger: #D2644B;
+  --info: #5F8CA0;
+
+  /* Этапы воронки */
+  --stage-new: #6F97A8;
+  --stage-qualification: #A9BFAF;
+  --stage-proposal: #E7C9A0;
+  --stage-negotiation: #E8853D;
+  --stage-won: #2F8A63;
+  --stage-lost: #B9A99B;
+
+  /* Форма */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --radius-pill: 999px;
+  --shadow-card: 0 10px 30px rgba(120, 80, 40, .10), inset 0 1px 0 rgba(255,255,255,.8);
+  --shadow-btn: 0 8px 18px rgba(168, 107, 62, .32);
+  --blur: blur(18px) saturate(1.2);
+
+  /* Типографика */
+  --font-display: var(--font-display-loaded), "Cormorant Garamond", Georgia, serif;
+  --font-ui: var(--font-ui-loaded), "Inter", system-ui, sans-serif;
+  --space: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1E1712; --bg-2: #2A2018;
+    --surface: rgba(255, 245, 232, .07);
+    --surface-solid: #2A2018;
+    --surface-border: rgba(255, 245, 232, .12);
+    --line: rgba(255, 235, 210, .12);
+    --text: #F3E8DA; --text-muted: #A39485;
+    --shadow-card: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; }
+body {
+  font-family: var(--font-ui); color: var(--text); font-size: 14px; line-height: 1.5;
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 8% -10%, rgba(232,133,61,.22), transparent 60%),
+    radial-gradient(800px 500px at 100% 0%, rgba(111,151,168,.22), transparent 60%),
+    radial-gradient(700px 500px at 60% 110%, rgba(47,138,99,.15), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -.01em; }
+.glass {
+  background: var(--surface); border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-card);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); padding: 24px;
+}
+.page { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 24px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.kpi .v { font-family: var(--font-display); font-size: 34px; font-weight: 600; line-height: 1.1; }
+.kpi .l { font-size: 12px; color: var(--text-muted); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; background: rgba(0,0,0,.05); }
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--text-muted)); }

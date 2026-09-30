@@ -9,13 +9,14 @@
 - [x] `Plan.md`
 
 ## Фаза 1. Инициализация
-- Next.js (App Router) + TypeScript, ESLint.
-- Строгие версии: `prisma@6.19.3`, `@prisma/client@6.19.3`, `chart.js@4.5.1`, `react-chartjs-2@5.3.1`, `zod`.
-- `docker-compose.yml` с PostgreSQL, `.env.example` (`DATABASE_URL`), `.gitignore`.
-- Скрипты `package.json`: `dev`, `build`, `db:up`, `db:migrate`, `db:seed`, `db:reset`.
-- Перенос токенов дизайн-системы в `globals.css`.
+- [x] Next.js (App Router) + TypeScript, ESLint.
+- [x] Строгие версии: `prisma@6.19.3`, `@prisma/client@6.19.3`, `chart.js@4.5.1`, `react-chartjs-2@5.3.1`, `zod`.
+- [x] `docker-compose.yml` с PostgreSQL, `.env.example` (`DATABASE_URL`), `.gitignore`.
+- [x] Скрипты `package.json`: `dev`, `build`, `db:up`, `db:migrate`, `db:seed`, `db:reset`.
+- [x] Перенос токенов дизайн-системы в `globals.css`.
 
 ## Фаза 2. Database
+Схема `schema.prisma`, начальная миграция `init` и первый `seed` уже созданы в фазе 1 для воспроизводимого запуска. В этой фазе они дорабатываются.
 - `schema.prisma`: `Lead`, `Account`, `Contact`, `Opportunity`, `Stage`, `Activity` и enum-ы (`LeadSource`, `LeadStatus`, `OpportunityStatus`, `ActivityType`).
 - Правила удаления: компания с контактами или сделками не удаляется, лид с конвертацией не удаляется, при удалении сделки удаляются её активности.
 - Индексы по полям поиска и фильтров (`status`, `source`, `stageId`, `dueDate`).

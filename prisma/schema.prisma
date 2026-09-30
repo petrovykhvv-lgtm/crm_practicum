@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadSource {
+  site
+  email
+  phone
+  referral
+  manual
+}
+
+enum LeadStatus {
+  new
+  in_progress
+  qualified
+  converted
+  disqualified
+}
+
+enum OpportunityStatus {
+  open
+  won
+  lost
+}
+
+enum ActivityType {
+  note
+  task
+}
+
+model Account {
+  id            String        @id @default(cuid())
+  name          String
+  industry      String?
+  website       String?
+  phone         String?
+  city          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  contacts      Contact[]
+  opportunities Opportunity[]
+  leads         Lead[]
+  activities    Activity[]
+
+  @@index([name])
+}
+
+model Contact {
+  id            String        @id @default(cuid())
+  firstName     String
+  lastName      String
+  position      String?
+  email         String?
+  phone         String?
+  accountId     String
+  account       Account       @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  opportunities Opportunity[]
+  leads         Lead[]
+  activities    Activity[]
+
+  @@index([accountId])
+  @@index([lastName])
+}
+
+model Lead {
+  id                 String      @id @default(cuid())
+  name               String
+  company            String?
+  email              String?
+  phone              String?
+  source             LeadSource
+  status             LeadStatus  @default(new)
+  budget             Decimal?    @db.Decimal(14, 2)
+  venue              String?
+  deadline           DateTime?
+  workFormat         String?
+  disqualifyReason   String?
+  convertedAt        DateTime?
+  convertedAccountId String?
+  convertedAccount   Account?    @relation(fields: [convertedAccountId], references: [id], onDelete: Restrict)
+  convertedContactId String?
+  convertedContact   Contact?    @relation(fields: [convertedContactId], references: [id], onDelete: Restrict)
+  opportunity        Opportunity?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  activities         Activity[]
+
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+}
+
+model Stage {
+  id            String        @id @default(cuid())
+  code          String        @unique
+  name          String
+  position      Int           @unique
+  isClosed      Boolean       @default(false)
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id         String            @id @default(cuid())
+  title      String
+  amount     Decimal?          @db.Decimal(14, 2)
+  status     OpportunityStatus @default(open)
+  lostReason String?
+  closedAt   DateTime?
+  venue      String?
+  eventDate  DateTime?
+  accountId  String
+  account    Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  contactId  String?
+  contact    Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  stageId    String
+  stage      Stage             @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  leadId     String?           @unique
+  lead       Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  activities Activity[]
+
+  @@index([status])
+  @@index([stageId])
+  @@index([accountId])
+}
+
+model Activity {
+  id            String       @id @default(cuid())
+  type          ActivityType
+  body          String
+  dueDate       DateTime?
+  done          Boolean      @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  leadId        String?
+  lead          Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId     String?
+  account       Account?     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([type, done, dueDate])
+  @@index([opportunityId])
+  @@index([leadId])
+}

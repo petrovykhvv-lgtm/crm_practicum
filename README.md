@@ -2,8 +2,7 @@
 
 Локально запускаемая CRM-lite: интерфейс, серверная логика, база данных, конвертация лидов, воронка сделок, активности и дашборд.
 
-> Статус: зафиксированы рабочие рамки проекта (фаза 0). Реализация ведётся по шагам, см. [Plan.md](Plan.md).
-> Инструкции по запуску, seed и reset будут добавлены по мере появления кода.
+> Статус: рамки проекта зафиксированы, локальный запуск подготовлен (фазы 0–1). Реализация ведётся по шагам, см. [Plan.md](Plan.md).
 
 ## Легенда
 
@@ -23,6 +22,75 @@
 Next.js, React, TypeScript, PostgreSQL, Prisma, Zod.
 Строго зафиксированные версии: `prisma@6.19.3`, `@prisma/client@6.19.3`, `chart.js@4.5.1`, `react-chartjs-2@5.3.1`.
 `DATABASE_URL` читается в `schema.prisma` через `env("DATABASE_URL")`. `@prisma/adapter-pg`, `PrismaPg` и `prisma.config.ts` не используются.
+
+## Воспроизводимый локальный запуск
+
+### Требования
+- Node.js 20.9 или новее и npm.
+- Docker с Docker Compose **или** уже установленный локальный PostgreSQL 14+ (см. вариант Б).
+
+### Вариант А. PostgreSQL в Docker (по умолчанию)
+
+```bash
+npm install                # зависимости строго по package-lock.json, затем prisma generate
+cp .env.example .env       # значения по умолчанию подходят для Docker
+npm run db:up              # PostgreSQL 16 на localhost:5433, ждёт готовности
+npm run db:deploy          # применяет миграции из prisma/migrations
+npm run db:seed            # контрольные данные
+npm run dev                # http://localhost:3000
+```
+
+Правок кода под окружение не требуется. Остановить базу: `npm run db:down` (данные сохраняются в томе Docker; `docker compose down -v` удалит и их).
+
+### Вариант Б. Локальный PostgreSQL без Docker
+
+1. Создайте роль и базу (пример для своей машины, пароль замените на свой):
+   ```sql
+   CREATE ROLE crm_practicum LOGIN PASSWORD 'ваш_пароль' CREATEDB;
+   CREATE DATABASE crm_practicum OWNER crm_practicum;
+   ```
+   `CREATEDB` нужен Prisma для временной shadow-базы при `prisma migrate dev`.
+2. Выполните `npm install` и `cp .env.example .env`.
+3. В `.env` замените `DATABASE_URL` на свою строку подключения, например `postgresql://crm_practicum:ваш_пароль@localhost:5432/crm_practicum?schema=public`.
+4. Дальше те же команды: `npm run db:deploy`, `npm run db:seed`, `npm run dev`.
+
+### Переменные окружения
+`.env.example` — шаблон, который лежит в репозитории. Файл `.env` с реальными значениями создаётся локально и находится в `.gitignore`, в репозиторий не попадает. Единственная переменная — `DATABASE_URL`, схема читает её через `env("DATABASE_URL")`. Пароль в `.env.example` — учебный, только для локальной базы.
+
+### Команды
+
+| Команда | Что делает |
+|---|---|
+| `npm run dev` | dev-сервер Next.js |
+| `npm run build` / `npm start` | production-сборка и запуск |
+| `npm run lint` | ESLint |
+| `npm run db:up` / `db:down` | запуск и остановка PostgreSQL в Docker |
+| `npm run db:deploy` | применить существующие миграции (`prisma migrate deploy`) |
+| `npm run db:migrate` | создать и применить новую миграцию в dev (`prisma migrate dev`) |
+| `npm run db:seed` | заново наполнить базу контрольными данными |
+| `npm run db:reset` | полный сброс: удалить все данные, применить миграции с нуля и выполнить seed |
+| `npm run db:studio` | Prisma Studio для просмотра данных |
+
+### Seed и reset
+- **Seed** (`prisma/seed.ts`) сначала очищает таблицы, затем создаёт: 6 стадий воронки, 4 компании, 4 контакта, 7 лидов (все статусы и несколько источников), 6 сделок (на всех стадиях, включая `won` и `lost`) и 9 активностей (в том числе просроченные и сегодняшние задачи). Его можно запускать повторно, результат каждый раз одинаковый.
+- **Reset** (`npm run db:reset`) удаляет **все** данные в базе из `DATABASE_URL` и пересоздаёт схему по миграциям, затем автоматически запускает seed. Используйте только с локальной dev-базой.
+- Быстро вернуть демо-данные, не трогая схему: `npm run db:seed`.
+
+### Как безопасно менять схему
+1. Меняйте только `prisma/schema.prisma`, руками SQL в существующих миграциях не правьте.
+2. Выполните `npm run db:migrate -- --name краткое_описание`. Prisma создаст новую папку в `prisma/migrations/` и применит её.
+3. Просмотрите сгенерированный `migration.sql`. Если он удаляет или переименовывает колонку, Prisma предупредит о потере данных. Для переименования сначала сделайте миграцию с `--create-only` и исправьте SQL вручную.
+4. Если менялись поля, которые использует seed, обновите `prisma/seed.ts` и выполните `npm run db:seed`.
+5. Закоммитьте `schema.prisma` вместе с новой папкой миграции.
+6. Товарищи по команде после `git pull` выполняют `npm install` и `npm run db:deploy`.
+
+Никогда не выполняйте `db:reset` и `prisma migrate dev` на базе с реальными данными.
+
+### Если что-то пошло не так
+- `Can't reach database server`: база не запущена или порт не тот. Проверьте `npm run db:up` и порт в `DATABASE_URL` (5433 для Docker, 5432 для локальной установки).
+- Порт 5433 занят: поменяйте левую часть в `ports` в `docker-compose.yml` и порт в `.env`.
+- Ошибка `@prisma/client did not initialize yet`: выполните `npm run db:generate`.
+- База «разошлась» со схемой после смены ветки: `npm run db:reset`.
 
 ## Обязательные сущности
 
