@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { changeStage } from "@/lib/actions/opportunities";
-import { formatMoney, opportunityStatusColors, opportunityStatusLabels } from "@/lib/labels";
+import { formatMoney } from "@/lib/labels";
 import { statusForStage, type OpportunityStatusValue } from "@/lib/opportunity-rules";
 import { StageMover } from "./stage-mover";
 
@@ -174,9 +174,6 @@ export function PipelineBoard({ columns: initial, stages }: { columns: BoardColu
                   {o.contact && <span className="muted">{o.contact}</span>}
                   <span className="deal-sum">{formatMoney(o.amount)}</span>
                   <span className="row" style={{ gap: 6 }}>
-                    <span className="badge" style={{ ["--c" as string]: opportunityStatusColors[o.status] }}>
-                      {opportunityStatusLabels[o.status]}
-                    </span>
                     {o.eventDate && <span className="muted">{new Date(o.eventDate).toLocaleDateString("ru-RU")}</span>}
                   </span>
                   <StageMover key={stage.id} opportunityId={o.id} currentStageId={stage.id} stages={stages} compact />

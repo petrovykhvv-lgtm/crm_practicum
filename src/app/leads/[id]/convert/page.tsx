@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConvertLeadForm } from "@/components/convert-lead-form";
@@ -5,6 +6,12 @@ import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { convertLead } from "@/lib/actions/convert";
 import { db } from "@/lib/db";
 import { NEW_ACCOUNT, toAmountInput, toDateInput } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.lead.findUnique({ where: { id }, select: { name: true } });
+  return { title: x ? `Конвертация: ${x.name}` : "Лид не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

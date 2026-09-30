@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivitySection } from "@/components/activity-section";
@@ -6,6 +7,12 @@ import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui
 import { deleteLead } from "@/lib/actions/leads";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, leadSourceLabels, leadStatusColors, leadStatusLabels } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.lead.findUnique({ where: { id }, select: { name: true } });
+  return { title: x ? x.name : "Лид не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

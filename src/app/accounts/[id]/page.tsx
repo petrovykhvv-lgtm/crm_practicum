@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivitySection } from "@/components/activity-section";
@@ -6,6 +7,12 @@ import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui
 import { deleteAccount } from "@/lib/actions/accounts";
 import { db } from "@/lib/db";
 import { formatMoney, stageColors } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.account.findUnique({ where: { id }, select: { name: true } });
+  return { title: x ? x.name : "Компания не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { formatMoney, leadStatusColors, leadStatusLabels, stageColors } from "@/lib/labels";
 import { accountSearch, contactSearch, leadSearch, opportunitySearch, pickParam, type SearchParams } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Поиск" };
 
 export const dynamic = "force-dynamic";
 

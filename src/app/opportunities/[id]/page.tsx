@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivitySection } from "@/components/activity-section";
@@ -7,6 +8,12 @@ import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui
 import { deleteOpportunity } from "@/lib/actions/opportunities";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, opportunityStatusColors, opportunityStatusLabels, stageColors } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.opportunity.findUnique({ where: { id }, select: { title: true } });
+  return { title: x ? x.title : "Сделка не найден" };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +34,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         subtitle={
           <span className="row">
             <Badge color={stageColors[deal.stage.code] ?? "var(--teal)"}>{deal.stage.name}</Badge>
-            <Badge color={opportunityStatusColors[deal.status]}>{opportunityStatusLabels[deal.status]}</Badge>
+            {/* у выигранной и проигранной сделки статус совпадает со стадией, второй бейдж не нужен */}
+            {deal.status === "open" && <Badge color={opportunityStatusColors[deal.status]}>{opportunityStatusLabels[deal.status]}</Badge>}
           </span>
         }
         actions={

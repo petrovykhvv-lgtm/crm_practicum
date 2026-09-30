@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterBar, FilterSelect, ResultsSummary, SearchInput } from "@/components/filters";
 import { Badge, Card, LinkButton, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, opportunityStatusColors, opportunityStatusLabels, stageColors } from "@/lib/labels";
 import { opportunitySearch, pickEnum, pickParam, type SearchParams } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Сделки" };
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +48,11 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
             <thead>
               <tr>
                 <th>Сделка</th>
-                <th>Компания</th>
+                <th className="hide-sm">Компания</th>
                 <th>Стадия</th>
-                <th>Статус</th>
+                <th className="hide-sm">Статус</th>
                 <th className="num">Сумма</th>
-                <th>Мероприятие</th>
+                <th className="hide-sm">Мероприятие</th>
               </tr>
             </thead>
             <tbody>
@@ -61,11 +64,11 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
               {deals.map((o) => (
                 <tr key={o.id}>
                   <td><Link href={`/opportunities/${o.id}`}>{o.title}</Link></td>
-                  <td><Link href={`/accounts/${o.accountId}`}>{o.account.name}</Link></td>
+                  <td className="hide-sm"><Link href={`/accounts/${o.accountId}`}>{o.account.name}</Link></td>
                   <td><Badge color={stageColors[o.stage.code] ?? "var(--teal)"}>{o.stage.name}</Badge></td>
-                  <td><Badge color={opportunityStatusColors[o.status]}>{opportunityStatusLabels[o.status]}</Badge></td>
+                  <td className="hide-sm"><Badge color={opportunityStatusColors[o.status]}>{opportunityStatusLabels[o.status]}</Badge></td>
                   <td className="num">{formatMoney(o.amount)}</td>
-                  <td>{formatDate(o.eventDate)}</td>
+                  <td className="hide-sm">{formatDate(o.eventDate)}</td>
                 </tr>
               ))}
             </tbody>

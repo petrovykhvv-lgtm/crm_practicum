@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FunnelChart, TrendChart } from "@/components/dashboard-charts";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -7,15 +8,67 @@ import { STEP_LABELS, resolvePeriod } from "@/lib/period";
 import { pickParam, type SearchParams } from "@/lib/search";
 import { formatDate, formatMoney, leadSourceLabels, leadStatusColors, leadStatusLabels } from "@/lib/labels";
 
+export const metadata: Metadata = { title: { absolute: "Дашборд — CRM-lite" } };
+
 export const dynamic = "force-dynamic";
 
-type Kpi = { label: string; value: string; hint?: string; color: string; icon: string; alert?: boolean; href?: string };
+type Kpi = { label: string; value: string; hint?: string; color: string; icon: IconName; alert?: boolean; href?: string };
+
+type IconName = "users" | "briefcase" | "ruble" | "alert" | "percent" | "check" | "target";
+
+const ICONS: Record<IconName, React.ReactNode> = {
+  users: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </>
+  ),
+  ruble: (
+    <>
+      <path d="M8 21V4h6a4.5 4.5 0 0 1 0 9H6" />
+      <path d="M6 17h8" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </>
+  ),
+  percent: (
+    <>
+      <path d="M19 5 5 19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </>
+  ),
+  check: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </>
+  ),
+};
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
   const body = (
     <>
       <div className="ico" style={{ ["--c" as string]: kpi.color }} aria-hidden>
-        {kpi.icon}
+        <svg viewBox="0 0 24 24">{ICONS[kpi.icon]}</svg>
       </div>
       <div className="v" style={kpi.alert ? { color: "var(--danger)" } : undefined}>
         {kpi.value}
@@ -59,15 +112,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { kpi } = d;
 
   const main: Kpi[] = [
-    { label: "Всего лидов", value: String(kpi.totalLeads), hint: `за период: ${kpi.newLeadsPeriod}`, color: "var(--teal)", icon: "Л", href: "/leads" },
-    { label: "Открытых сделок", value: String(kpi.openDeals), color: "var(--orange)", icon: "С", href: "/opportunities?status=open" },
-    { label: "Сумма открытых сделок", value: formatMoney(kpi.openDealsSum), color: "var(--green)", icon: "₽", href: "/pipeline" },
-    { label: "Просроченных задач", value: String(kpi.overdueTasks), hint: `на сегодня: ${kpi.todayTasks}`, color: "var(--danger)", icon: "!", alert: kpi.overdueTasks > 0 },
+    { label: "Всего лидов", value: String(kpi.totalLeads), hint: `за период: ${kpi.newLeadsPeriod}`, color: "var(--teal)", icon: "users", href: "/leads" },
+    { label: "Открытых сделок", value: String(kpi.openDeals), color: "var(--orange)", icon: "briefcase", href: "/opportunities?status=open" },
+    { label: "Сумма открытых сделок", value: formatMoney(kpi.openDealsSum), color: "var(--green)", icon: "ruble", href: "/pipeline" },
+    { label: "Просроченных задач", value: String(kpi.overdueTasks), hint: `на сегодня: ${kpi.todayTasks}`, color: "var(--danger)", icon: "alert", alert: kpi.overdueTasks > 0 },
   ];
   const secondary: Kpi[] = [
-    { label: "Конверсия лидов", value: `${kpi.conversionPct}%`, hint: "лиды периода", color: "var(--forest)", icon: "%" },
-    { label: "Выиграно за период", value: formatMoney(kpi.wonSum), hint: `сделок: ${kpi.wonCount}`, color: "var(--green)", icon: "✓" },
-    { label: "Win rate", value: kpi.winRatePct === null ? "—" : `${kpi.winRatePct}%`, hint: "закрыто за период", color: "var(--bronze-2)", icon: "★" },
+    { label: "Конверсия лидов", value: `${kpi.conversionPct}%`, hint: "лиды периода", color: "var(--forest)", icon: "percent" },
+    { label: "Выиграно за период", value: formatMoney(kpi.wonSum), hint: `сделок: ${kpi.wonCount}`, color: "var(--green)", icon: "check" },
+    { label: "Доля выигранных", value: kpi.winRatePct === null ? "—" : `${kpi.winRatePct}%`, hint: "закрыто за период", color: "var(--bronze-2)", icon: "target" },
   ];
 
   const totalStatus = d.leadStatuses.reduce((n, s) => n + s.count, 0);
@@ -123,7 +176,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </Card>
 
-        <Card title="Recent Leads · новые лиды" aside={<Link href="/leads">все лиды</Link>} className="dash-card">
+        <Card title="Новые лиды" aside={<Link href="/leads">все лиды</Link>} className="dash-card">
           {d.recentLeads.length === 0 ? (
             <p className="muted card-scroll">Лидов пока нет.</p>
           ) : (

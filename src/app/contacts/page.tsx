@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterBar, ResultsSummary, SearchInput } from "@/components/filters";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { contactSearch, pickParam, type SearchParams } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Контакты" };
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +33,10 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
             <thead>
               <tr>
                 <th>Контакт</th>
-                <th>Должность</th>
+                <th className="hide-sm">Должность</th>
                 <th>Компания</th>
-                <th>Email</th>
-                <th>Телефон</th>
+                <th className="hide-sm">Email</th>
+                <th className="hide-sm">Телефон</th>
               </tr>
             </thead>
             <tbody>
@@ -45,10 +48,10 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
               {contacts.map((c) => (
                 <tr key={c.id}>
                   <td><Link href={`/contacts/${c.id}`}>{c.lastName} {c.firstName}</Link></td>
-                  <td>{c.position ?? "—"}</td>
+                  <td className="hide-sm">{c.position ?? "—"}</td>
                   <td><Link href={`/accounts/${c.accountId}`}>{c.account.name}</Link></td>
-                  <td>{c.email ?? "—"}</td>
-                  <td>{c.phone ?? "—"}</td>
+                  <td className="hide-sm">{c.email ?? "—"}</td>
+                  <td className="hide-sm">{c.phone ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

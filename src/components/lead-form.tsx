@@ -10,11 +10,13 @@ type Props = {
   initial?: Record<string, string>;
   /** Конвертированный лид: статус менять нельзя. */
   statusLocked?: boolean;
+  /** Создание: статус всегда «Новый», поле скрыто. */
+  hideStatus?: boolean;
   submitLabel: string;
   cancelHref: string;
 };
 
-export function LeadForm({ action, initial, statusLocked, submitLabel, cancelHref }: Props) {
+export function LeadForm({ action, initial, statusLocked, hideStatus, submitLabel, cancelHref }: Props) {
   const { state, onSubmit, pending } = useServerForm(action);
   const f = fieldsOf(state, initial);
   const [status, setStatus] = useState(initial?.status ?? "new");
@@ -29,7 +31,9 @@ export function LeadForm({ action, initial, statusLocked, submitLabel, cancelHre
       <TextField label="Email" type="email" maxLength={200} {...f("email")} />
       <TextField label="Телефон" type="tel" maxLength={40} inputMode="tel" {...f("phone")} />
       <SelectField label="Источник" required placeholder="Выберите источник" options={LEAD_SOURCES.map((s) => ({ value: s, label: leadSourceLabels[s] }))} {...f("source")} />
-      {statusLocked ? (
+      {hideStatus ? (
+        <input type="hidden" name="status" value="new" />
+      ) : statusLocked ? (
         <SelectField label="Статус" name="status" disabled defaultValue="converted" hint="Лид конвертирован, статус изменить нельзя" options={[{ value: "converted", label: "Конвертирован" }]} />
       ) : (
         <SelectField

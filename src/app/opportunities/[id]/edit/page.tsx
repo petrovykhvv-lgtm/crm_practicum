@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OpportunityForm } from "@/components/opportunity-form";
 import { Card, PageHeader } from "@/components/ui";
 import { updateOpportunity } from "@/lib/actions/opportunities";
 import { db } from "@/lib/db";
 import { toAmountInput, toDateInput } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.opportunity.findUnique({ where: { id }, select: { title: true } });
+  return { title: x ? `Редактирование: ${x.title}` : "Сделка не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterBar, FilterSelect, ResultsSummary, SearchInput } from "@/components/filters";
 import { Badge, Card, LinkButton, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { LEAD_SOURCES, LEAD_STATUSES, formatDate, formatMoney, leadSourceLabels, leadStatusColors, leadStatusLabels } from "@/lib/labels";
 import { leadSearch, pickEnum, pickParam, type SearchParams } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Лиды" };
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +44,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
             <thead>
               <tr>
                 <th>Лид</th>
-                <th>Компания</th>
-                <th>Источник</th>
+                <th className="hide-sm">Компания</th>
+                <th className="hide-sm">Источник</th>
                 <th>Статус</th>
                 <th className="num">Бюджет</th>
-                <th>Создан</th>
+                <th className="hide-sm">Создан</th>
               </tr>
             </thead>
             <tbody>
@@ -57,11 +60,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
               {leads.map((l) => (
                 <tr key={l.id}>
                   <td><Link href={`/leads/${l.id}`}>{l.name}</Link></td>
-                  <td>{l.company ?? "—"}</td>
-                  <td>{leadSourceLabels[l.source]}</td>
+                  <td className="hide-sm">{l.company ?? "—"}</td>
+                  <td className="hide-sm">{leadSourceLabels[l.source]}</td>
                   <td><Badge color={leadStatusColors[l.status]}>{leadStatusLabels[l.status]}</Badge></td>
                   <td className="num">{formatMoney(l.budget)}</td>
-                  <td>{formatDate(l.createdAt)}</td>
+                  <td className="hide-sm">{formatDate(l.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

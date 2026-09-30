@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { OpportunityForm } from "@/components/opportunity-form";
 import { Card, PageHeader } from "@/components/ui";
 import { createOpportunity } from "@/lib/actions/opportunities";
 import { db } from "@/lib/db";
+
+export const metadata: Metadata = { title: "Новая сделка" };
 
 export const dynamic = "force-dynamic";
 

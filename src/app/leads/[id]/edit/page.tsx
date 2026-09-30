@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LeadForm } from "@/components/lead-form";
 import { Card, PageHeader } from "@/components/ui";
 import { updateLead } from "@/lib/actions/leads";
 import { db } from "@/lib/db";
 import { toAmountInput, toDateInput } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.lead.findUnique({ where: { id }, select: { name: true } });
+  return { title: x ? `Редактирование: ${x.name}` : "Лид не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

@@ -19,7 +19,7 @@
 
   /* Текст */
   --text: #3A2A1E;
-  --text-muted: #85766A;
+  --text-muted: #6E6054;
   --text-on-accent: #FFF9F2;
 
   /* Акценты */
@@ -36,6 +36,9 @@
   --success: #2F8A63;
   --warning: #D89A2B;
   --danger: #D2644B;
+  --danger-text: #B5452E;
+  --btn-1: #9C6034;
+  --btn-2: #8A552D;
   --info: #5F8CA0;
 
   /* Этапы воронки */
@@ -115,7 +118,7 @@ h3 { font-size: 20px; }
 }
 .btn:hover { transform: translateY(-1px); }
 .btn:focus-visible, .input:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-.btn-primary { color: var(--text-on-accent); background: linear-gradient(135deg, var(--bronze-1), var(--bronze-2)); box-shadow: var(--shadow-btn); }
+.btn-primary { color: var(--text-on-accent); background: linear-gradient(135deg, var(--btn-1), var(--btn-2)); box-shadow: var(--shadow-btn); }
 .btn-orange { color: #fff; background: linear-gradient(135deg, #F19A56, var(--orange)); box-shadow: 0 8px 18px rgba(232,133,61,.35); }
 .btn-forest { color: #fff; background: linear-gradient(135deg, #2E6B58, var(--forest)); }
 .btn-ghost { color: var(--text); background: var(--surface); border: 1px solid var(--surface-border); }
@@ -130,7 +133,7 @@ h3 { font-size: 20px; }
   border-radius: var(--radius-pill); padding: 11px 18px;
 }
 .input.error { border-color: var(--danger); }
-.hint-error { color: var(--danger); font-size: 12px; }
+.hint-error { color: var(--danger-text); font-size: 12px; }
 
 /* Бейджи */
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; background: rgba(0,0,0,.05); }
@@ -169,7 +172,7 @@ tr:hover td { background: rgba(255,255,255,.35); }
 .brand small { display: block; font-family: var(--font-ui); font-size: 10px; font-weight: 400; color: var(--text-muted); margin-top: 3px; }
 .nav { display: flex; gap: 4px; }
 .nav a { padding: 9px 16px; border-radius: var(--radius-pill); color: var(--text-muted); text-decoration: none; font-weight: 500; white-space: nowrap; cursor: pointer; }
-.nav a.active { background: linear-gradient(135deg, var(--bronze-1), var(--bronze-2)); color: var(--text-on-accent); box-shadow: var(--shadow-btn); }
+.nav a.active { background: linear-gradient(135deg, var(--btn-1), var(--btn-2)); color: var(--text-on-accent); box-shadow: var(--shadow-btn); }
 .topbar .search { margin-left: auto; width: 240px; }
 @media (max-width: 1100px) {
   .topbar { flex-wrap: wrap; border-radius: var(--radius-lg); gap: 10px 16px; }
@@ -196,7 +199,8 @@ tr:hover td { background: rgba(255,255,255,.35); }
     <div class="grid g-6">
       <div class="sw"><i style="background:var(--bg)"></i><b>Bg</b><span>#F3ECE2</span></div>
       <div class="sw"><i style="background:var(--text)"></i><b>Text</b><span>#3A2A1E</span></div>
-      <div class="sw"><i style="background:linear-gradient(135deg,var(--bronze-1),var(--bronze-2))"></i><b>Bronze</b><span>#D19A6A → #A86B3E</span></div>
+      <div class="sw"><i style="background:linear-gradient(135deg,var(--bronze-1),var(--bronze-2))"></i><b>Bronze</b><span>#D19A6A → #A86B3E (декор)</span></div>
+      <div class="sw"><i style="background:linear-gradient(135deg,var(--btn-1),var(--btn-2))"></i><b>Кнопки</b><span>#9C6034 → #8A552D</span></div>
       <div class="sw"><i style="background:var(--orange)"></i><b>Orange</b><span>#E8853D</span></div>
       <div class="sw"><i style="background:var(--forest)"></i><b>Forest</b><span>#1F5142</span></div>
       <div class="sw"><i style="background:var(--green)"></i><b>Green</b><span>#2F8A63</span></div>
@@ -305,6 +309,9 @@ tr:hover td { background: rgba(255,255,255,.35); }
       <li>Стекло только на крупных контейнерах, внутри — плотные поверхности для читаемости.</li>
       <li>Оранжевый — главное действие и просрочка/внимание, бронза — основные кнопки, зелёный — успех и деньги, бирюза — нейтральные данные.</li>
       <li>Заголовки и крупные числа — серифные, всё остальное — Inter.</li>
+      <li>Доступность: контраст текста не ниже 4,5:1. Вторичный текст <code>#6E6054</code> (5,2:1), текст ошибок и просрочки <code>#B5452E</code> (5,1:1), кнопки с белым текстом на градиенте <code>#9C6034 → #8A552D</code> (4,9–5,9:1). Светлый бронзовый градиент только для декора, не под текстом. Минимальный размер текста 12 px, чекбоксы 18 px.</li>
+      <li>Иконки KPI: линейные SVG 16 px (<code>stroke: currentColor</code>), а не буквы. Подписи интерфейса только на русском.</li>
+      <li>На телефоне (до 600 px) в таблицах остаются главные колонки, остальное скрывается классом <code>hide-sm</code>.</li>
       <li>Навигация в шапке, а не в боковой панели: это освобождает ширину под контент, в первую очередь под воронку.</li>
       <li>Перетаскивание карточек воронки: курсор <code>grab</code>, перетаскиваемая карточка полупрозрачная, колонка-цель получает пунктирную бронзовую рамку и лёгкую заливку. Причина отказа вводится в модальном окне на стеклянной поверхности.</li>
       <li>Воронка не скроллится по горизонтали: колонки <code>repeat(6, minmax(0, 1fr))</code>, на меньших экранах 3 и 1.</li>

@@ -82,7 +82,7 @@ export function FunnelChart({ labels, sums, counts, colors, refusals }: FunnelCh
         ctx.textBaseline = "middle";
         ctx.font = "600 15px Inter, system-ui, sans-serif";
         ctx.fillText(compactRub(sums[i] ?? 0), x, y - 8);
-        ctx.font = "400 11px Inter, system-ui, sans-serif";
+        ctx.font = "400 12px Inter, system-ui, sans-serif";
         ctx.fillText(pluralDeals(counts[i] ?? 0), x, y + 10);
         ctx.restore();
       });
@@ -141,14 +141,16 @@ export function TrendChart({ title, labels, values, counts, color, stepLabel }: 
     id: "trendPointLabels",
     afterDatasetsDraw(chart) {
       const { ctx } = chart;
+      let lastX = -Infinity; // не рисуем подпись, если она налезает на предыдущую
       chart.getDatasetMeta(0).data.forEach((point, i) => {
         const v = values[i] ?? 0;
-        if (v <= 0 || !showValueLabels) return;
+        if (v <= 0 || !showValueLabels || point.x - lastX < 46) return;
+        lastX = point.x;
         ctx.save();
         ctx.fillStyle = theme.text;
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        ctx.font = "500 10px Inter, system-ui, sans-serif";
+        ctx.font = "500 11px Inter, system-ui, sans-serif";
         ctx.fillText(compactRub(v).replace(" ₽", ""), point.x, point.y - 7);
         ctx.restore();
       });
@@ -178,7 +180,7 @@ export function TrendChart({ title, labels, values, counts, color, stepLabel }: 
               tooltip: { callbacks: { label: (ctx) => `Объём: ${rub(values[ctx.dataIndex] ?? 0)}`, afterLabel: (ctx) => pluralDeals(counts[ctx.dataIndex] ?? 0) } },
             },
             scales: {
-              x: { ticks: { color: theme.muted, font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: theme.line } },
+              x: { ticks: { color: theme.muted, font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: theme.line } },
               y: { beginAtZero: true, ticks: { display: false }, grid: { color: theme.line }, border: { display: false }, grace: "15%" },
             },
           }}

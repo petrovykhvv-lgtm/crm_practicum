@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterBar, ResultsSummary, SearchInput } from "@/components/filters";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { accountSearch, pickParam, type SearchParams } from "@/lib/search";
+
+export const metadata: Metadata = { title: "Компании" };
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +37,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
             <thead>
               <tr>
                 <th>Название</th>
-                <th>Отрасль</th>
-                <th>Город</th>
+                <th className="hide-sm">Отрасль</th>
+                <th className="hide-sm">Город</th>
                 <th className="num">Контактов</th>
                 <th className="num">Сделок</th>
               </tr>
@@ -49,8 +52,8 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
               {accounts.map((a) => (
                 <tr key={a.id}>
                   <td><Link href={`/accounts/${a.id}`}>{a.name}</Link></td>
-                  <td>{a.industry ?? "—"}</td>
-                  <td>{a.city ?? "—"}</td>
+                  <td className="hide-sm">{a.industry ?? "—"}</td>
+                  <td className="hide-sm">{a.city ?? "—"}</td>
                   <td className="num">{a._count.contacts}</td>
                   <td className="num">{a._count.opportunities}</td>
                 </tr>

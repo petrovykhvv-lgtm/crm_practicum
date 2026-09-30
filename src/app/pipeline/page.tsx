@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { PipelineBoard, type BoardColumn } from "@/components/pipeline-board";
 import { QuickDealForm } from "@/components/quick-deal-form";
 import { Card, PageHeader } from "@/components/ui";
 import { db } from "@/lib/db";
 import { formatMoney, stageColors } from "@/lib/labels";
+
+export const metadata: Metadata = { title: "Воронка" };
 
 export const dynamic = "force-dynamic";
 

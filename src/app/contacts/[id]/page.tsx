@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivitySection } from "@/components/activity-section";
@@ -6,6 +7,12 @@ import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui
 import { deleteContact } from "@/lib/actions/contacts";
 import { db } from "@/lib/db";
 import { formatMoney, stageColors } from "@/lib/labels";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.contact.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+  return { title: x ? `${x.firstName} ${x.lastName}` : "Контакт не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

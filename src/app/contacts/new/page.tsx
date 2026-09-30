@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact-form";
 import { Card, PageHeader } from "@/components/ui";
 import { createContact } from "@/lib/actions/contacts";
 import { db } from "@/lib/db";
+
+export const metadata: Metadata = { title: "Новый контакт" };
 
 export const dynamic = "force-dynamic";
 

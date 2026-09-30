@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ContactForm } from "@/components/contact-form";
 import { Card, PageHeader } from "@/components/ui";
 import { updateContact } from "@/lib/actions/contacts";
 import { db } from "@/lib/db";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const x = await db.contact.findUnique({ where: { id }, select: { firstName: true, lastName: true } });
+  return { title: x ? `Редактирование: ${x.firstName} ${x.lastName}` : "Контакт не найден" };
+}
 
 export const dynamic = "force-dynamic";
 

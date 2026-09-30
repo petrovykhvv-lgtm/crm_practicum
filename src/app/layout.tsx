@@ -7,7 +7,7 @@ const display = Cormorant_Garamond({ subsets: ["latin", "cyrillic"], weight: ["5
 const ui = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-ui-loaded" });
 
 export const metadata: Metadata = {
-  title: "CRM-lite",
+  title: { default: "CRM-lite", template: "%s — CRM-lite" },
   description: "CRM для агентства выставочных стендов",
 };
 
