@@ -8,3 +8,7 @@ out
 .DS_Store
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# Файлы подсказок для ИИ-агентов, которые Next.js генерирует при запуске
+AGENTS.md
+CLAUDE.md

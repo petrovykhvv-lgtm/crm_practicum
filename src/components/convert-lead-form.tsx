@@ -9,10 +9,11 @@ type Props = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   initial: Record<string, string>;
   accounts: { id: string; name: string }[];
+  managers: { id: string; name: string }[];
   cancelHref: string;
 };
 
-export function ConvertLeadForm({ action, initial, accounts, cancelHref }: Props) {
+export function ConvertLeadForm({ action, initial, accounts, managers, cancelHref }: Props) {
   const { state, onSubmit, pending } = useServerForm(action);
   const f = fieldsOf(state, initial);
   const [choice, setChoice] = useState(initial.accountChoice ?? NEW_ACCOUNT);
@@ -53,6 +54,7 @@ export function ConvertLeadForm({ action, initial, accounts, cancelHref }: Props
           <TextField label="Сумма, ₽" inputMode="decimal" {...f("amount")} />
           <TextField label="Площадка" maxLength={200} {...f("venue")} />
           <TextField label="Дата мероприятия" type="date" {...f("eventDate")} />
+          <SelectField label="Ответственный за сделку" placeholder="Не назначен" options={managers.map((m) => ({ value: m.id, label: m.name }))} {...f("managerId")} />
         </>
       )}
 

@@ -45,6 +45,6 @@ export function actionError(error: unknown, values?: Record<string, string>): No
     if (error.code === "P2003") return { message: "Операция нарушает связи между записями. Сначала удалите или переназначьте связанные данные.", values };
     return { message: `Ошибка базы данных (${error.code}). Попробуйте ещё раз.`, values };
   }
-  const detail = error instanceof Error ? `: ${error.message}` : "";
-  return { message: `Не удалось выполнить операцию${detail}`, values };
+  // Подробности неожиданной ошибки только в серверный лог, пользователю общая формулировка.
+  return { message: "Не удалось выполнить операцию из-за внутренней ошибки. Попробуйте ещё раз, а если повторится, сообщите администратору.", values };
 }

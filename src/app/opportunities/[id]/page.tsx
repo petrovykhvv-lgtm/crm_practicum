@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HistoryCard } from "@/components/history-card";
 import { ActivitySection } from "@/components/activity-section";
 import { StageMover } from "@/components/stage-mover";
 import { DeleteButton } from "@/components/delete-button";
@@ -19,10 +20,10 @@ export const dynamic = "force-dynamic";
 
 export default async function OpportunityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const stages = await db.stage.findMany({ orderBy: { position: "asc" } });
+  const [stages, reasons] = await Promise.all([db.stage.findMany({ orderBy: { position: "asc" } }), db.lostReason.findMany({ orderBy: { position: "asc" }, select: { id: true, name: true, requiresComment: true } })]);
   const deal = await db.opportunity.findUnique({
     where: { id },
-    include: { account: true, contact: true, stage: true, lead: true, activities: { orderBy: { createdAt: "desc" } } },
+    include: { account: true, contact: true, stage: true, lead: true, manager: { select: { name: true } }, lostReasonRef: true, activities: { orderBy: { createdAt: "desc" }, include: { assignee: { select: { id: true, name: true } } } } },
   });
   if (!deal) notFound();
 
@@ -54,8 +55,9 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               ["Сумма", formatMoney(deal.amount)],
               ["Площадка", deal.venue],
               ["Мероприятие", formatDate(deal.eventDate)],
+              ["Ответственный", deal.manager?.name],
               ...(deal.status !== "open" ? ([["Закрыта", formatDate(deal.closedAt)]] as [string, string][]) : []),
-              ...(deal.status === "lost" ? ([["Причина отказа", deal.lostReason]] as [string, string | null][]) : []),
+              ...(deal.status === "lost" ? ([["Причина отказа", [deal.lostReasonRef?.name, deal.lostReason].filter(Boolean).join(": ") || null]] as [string, string | null][]) : []),
               ["Исходный лид", deal.lead ? <Link href={`/leads/${deal.lead.id}`}>{deal.lead.name}</Link> : null],
               ["Создана", formatDate(deal.createdAt)],
             ]}
@@ -63,10 +65,11 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         </Card>
         <div className="content">
           <Card title="Стадия сделки">
-            <StageMover opportunityId={deal.id} currentStageId={deal.stageId} stages={stages.map((s) => ({ id: s.id, code: s.code, name: s.name }))} />
+            <StageMover opportunityId={deal.id} currentStageId={deal.stageId} reasons={reasons} stages={stages.map((s) => ({ id: s.id, code: s.code, name: s.name }))} />
             <p className="muted" style={{ marginTop: 8 }}>«Выиграна» требует сумму и контакт, «Проиграна» требует причину отказа.</p>
           </Card>
           <ActivitySection kind="opportunity" id={deal.id} items={deal.activities} />
+          <HistoryCard entityType="opportunity" entityId={deal.id} />
         </div>
       </div>
     </>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { NEW_ACCOUNT } from "@/lib/labels";
 import { convertLeadSchema } from "@/lib/validation";
@@ -21,6 +22,16 @@ export async function convertLead(leadId: string, _prev: FormState, formData: Fo
   const parsed = parseForm(convertLeadSchema, formData);
   if (!parsed.ok) return parsed.state;
   const d = parsed.data;
+
+  const created: { accountId: string; accountIsNew: boolean; accountName: string; contactId: string; contactName: string; dealId: string | null; dealTitle: string | null } = {
+    accountId: "",
+    accountIsNew: false,
+    accountName: "",
+    contactId: "",
+    contactName: "",
+    dealId: null,
+    dealTitle: null,
+  };
 
   try {
     await db.$transaction(async (tx) => {
@@ -42,21 +53,29 @@ export async function convertLead(leadId: string, _prev: FormState, formData: Fo
 
       let accountId: string;
       if (d.accountChoice === NEW_ACCOUNT) {
-        accountId = (await tx.account.create({ data: { name: d.accountName! } })).id;
+        const account = await tx.account.create({ data: { name: d.accountName! } });
+        accountId = account.id;
+        created.accountIsNew = true;
+        created.accountName = account.name;
       } else {
-        const account = await tx.account.findUnique({ where: { id: d.accountChoice }, select: { id: true } });
+        const account = await tx.account.findUnique({ where: { id: d.accountChoice }, select: { id: true, name: true } });
         if (!account) throw new ConvertError("Выбранная компания не найдена.", "accountChoice");
         accountId = account.id;
+        created.accountName = account.name;
       }
+      created.accountId = accountId;
 
       const contact = await tx.contact.create({
         data: { firstName: d.firstName, lastName: d.lastName, position: d.position, email: d.email, phone: d.phone, accountId },
       });
 
+      created.contactId = contact.id;
+      created.contactName = `${contact.firstName} ${contact.lastName}`;
+
       if (d.createDeal) {
         const stage = await tx.stage.findFirst({ where: { isClosed: false }, orderBy: { position: "asc" } });
         if (!stage) throw new ConvertError("В воронке нет открытых стадий: сделку создать нельзя.");
-        await tx.opportunity.create({
+        const deal = await tx.opportunity.create({
           data: {
             title: d.dealTitle!,
             amount: d.amount,
@@ -67,9 +86,12 @@ export async function convertLead(leadId: string, _prev: FormState, formData: Fo
             accountId,
             contactId: contact.id,
             leadId,
+            managerId: d.managerId,
             transitions: { create: { stageId: stage.id, amount: d.amount } },
           },
         });
+        created.dealId = deal.id;
+        created.dealTitle = deal.title;
       }
 
       await tx.lead.update({ where: { id: leadId }, data: { convertedAccountId: accountId, convertedContactId: contact.id } });
@@ -84,6 +106,17 @@ export async function convertLead(leadId: string, _prev: FormState, formData: Fo
     }
     return actionError(error, rawValues(formData));
   }
+
+  // Журнал: по записи на каждую созданную сущность и итог на карточке лида.
+  if (created.accountIsNew) await audit({ entityType: "account", entityId: created.accountId, action: "create", summary: `Создана компания «${created.accountName}» при конвертации лида` });
+  await audit({ entityType: "contact", entityId: created.contactId, action: "create", summary: `Создан контакт «${created.contactName}» при конвертации лида` });
+  if (created.dealId) await audit({ entityType: "opportunity", entityId: created.dealId, action: "create", summary: `Создана сделка «${created.dealTitle}» при конвертации лида` });
+  await audit({
+    entityType: "lead",
+    entityId: leadId,
+    action: "convert",
+    summary: `Лид конвертирован: контакт «${created.contactName}», компания «${created.accountName}»${created.dealId ? `, сделка «${created.dealTitle}»` : ""}`,
+  });
 
   revalidatePath("/leads", "layout");
   revalidatePath("/accounts", "layout");

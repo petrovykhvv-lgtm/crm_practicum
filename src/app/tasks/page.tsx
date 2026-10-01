@@ -4,7 +4,10 @@ import { ActivityRow } from "@/components/activity-row";
 import { toActivityRow } from "@/components/activity-list";
 import { FilterBar, SearchInput } from "@/components/filters";
 import { Card, PageHeader } from "@/components/ui";
+import { ManagerFilter } from "@/components/manager-filter";
+import { getCurrentManagerId, getManagers, resolveManagerFilter } from "@/lib/current-manager";
 import { db } from "@/lib/db";
+import { addDays, startOfDay } from "@/lib/tz";
 import { pickEnum, pickParam, type SearchParams } from "@/lib/search";
 
 export const metadata: Metadata = { title: "Задачи" };
@@ -33,10 +36,12 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const view: View = pickEnum(sp, "view", VIEWS) ?? "open";
   const q = pickParam(sp, "q");
+  const managerParam = pickParam(sp, "manager");
+  const [managers, currentManagerId, managerFilter] = await Promise.all([getManagers(), getCurrentManagerId(), resolveManagerFilter(managerParam)]);
+  const assigneeWhere = managerFilter ? { assigneeId: managerFilter.value } : {};
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const startOfToday = startOfDay();
+  const endOfToday = addDays(startOfToday, 1);
   const task = { type: "task" } as const;
   const open = { ...task, done: false } as const;
 
@@ -50,7 +55,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   } as const;
 
   const words = q ? q.split(/\s+/).filter(Boolean).slice(0, 6) : [];
-  const textFilter = { AND: words.map((w) => ({ body: { contains: w, mode: "insensitive" as const } })) };
+  const textFilter = { AND: [...words.map((w) => ({ body: { contains: w, mode: "insensitive" as const } })), assigneeWhere] };
 
   const [counts, rows] = await Promise.all([
     Promise.all(VIEWS.map((v) => db.activity.count({ where: { AND: [where[v], textFilter] } }))),
@@ -63,6 +68,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         lead: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
         account: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
       },
     }),
   ]);
@@ -72,6 +78,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     const p = new URLSearchParams();
     if (v !== "open") p.set("view", v);
     if (q) p.set("q", q);
+    if (managerParam) p.set("manager", managerParam);
     const qs = p.toString();
     return qs ? `/tasks?${qs}` : "/tasks";
   };
@@ -80,16 +87,17 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="Задачи" subtitle="Все задачи по сделкам, лидам, контактам и компаниям в одном списке." />
       <Card>
-        <div className="tabs" role="tablist" aria-label="Фильтр задач">
+        <nav className="tabs" aria-label="Фильтр задач">
           {VIEWS.map((v) => (
-            <Link key={v} href={href(v)} role="tab" aria-selected={v === view} className={`tab${v === view ? " active" : ""}${v === "overdue" && countOf[v] > 0 ? " alert-tab" : ""}`}>
+            <Link key={v} href={href(v)} aria-current={v === view ? "page" : undefined} className={`tab${v === view ? " active" : ""}${v === "overdue" && countOf[v] > 0 ? " alert-tab" : ""}`}>
               {VIEW_LABELS[v]} <span className="tab-count">{countOf[v]}</span>
             </Link>
           ))}
-        </div>
+        </nav>
         <FilterBar action="/tasks">
           <input type="hidden" name="view" value={view} />
           <SearchInput defaultValue={q} placeholder="Текст задачи" />
+          <ManagerFilter value={managerParam} managers={managers} hasCurrent={!!currentManagerId} label="Исполнитель" />
         </FilterBar>
       </Card>
       <Card>
@@ -106,7 +114,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                   : a.account
                     ? { href: `/accounts/${a.account.id}`, label: a.account.name }
                     : null;
-            return <ActivityRow key={a.id} row={toActivityRow(a, target)} />;
+            return <ActivityRow key={a.id} row={toActivityRow(a, target)} managers={managers} />;
           })
         )}
         {rows.length === 200 && <p className="muted">Показаны первые 200 задач. Уточните поиск.</p>}

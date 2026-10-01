@@ -1,3 +1,5 @@
+import { formatDateRu, formatYmd } from "@/lib/tz";
+
 export const LEAD_SOURCES = ["site", "email", "phone", "referral", "manual"] as const;
 export const LEAD_STATUSES = ["new", "in_progress", "qualified", "converted", "disqualified"] as const;
 export const EDITABLE_LEAD_STATUSES = ["new", "in_progress", "qualified", "disqualified"] as const;
@@ -50,14 +52,12 @@ export function formatMoney(value: { toString(): string } | number | null | unde
 }
 
 export function formatDate(value: Date | null | undefined): string {
-  return value ? value.toLocaleDateString("ru-RU") : "—";
+  return value ? formatDateRu(value) : "—";
 }
 
 /** Значение для <input type="date"> в локальном часовом поясе. */
 export function toDateInput(value: Date | null | undefined): string {
-  if (!value) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  return value ? formatYmd(value) : "";
 }
 
 export function toAmountInput(value: { toString(): string } | null | undefined): string {

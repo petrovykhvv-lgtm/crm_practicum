@@ -2,30 +2,32 @@
 
 import { useState, useTransition } from "react";
 import { changeStage } from "@/lib/actions/opportunities";
+import { LostReasonDialog, type ReasonOption } from "./lost-reason-dialog";
 
 type Props = {
   opportunityId: string;
   currentStageId: string;
   stages: { id: string; code: string; name: string }[];
+  reasons: ReasonOption[];
   compact?: boolean;
 };
 
-/** Быстрое действие «Сменить стадию». Для стадии «Проиграна» запрашивает причину отказа. */
-export function StageMover({ opportunityId, currentStageId, stages, compact }: Props) {
+/** Быстрое действие «Сменить стадию». Для стадии «Проиграна» открывает окно выбора причины отказа. */
+export function StageMover({ opportunityId, currentStageId, stages, reasons, compact }: Props) {
   const [stageId, setStageId] = useState(currentStageId);
-  const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const changed = stageId !== currentStageId;
-  const needReason = changed && stages.find((s) => s.id === stageId)?.code === "lost";
+  const toLost = changed && stages.find((s) => s.id === stageId)?.code === "lost";
 
-  function submit() {
+  function run(reasonId: string | null, comment: string | null) {
     startTransition(async () => {
-      const result = await changeStage(opportunityId, stageId, needReason ? reason : null);
+      const result = await changeStage(opportunityId, stageId, reasonId, comment);
       if (result.ok) {
         setError(null);
-        setReason("");
+        setAsking(false);
       } else {
         setError(result.message);
       }
@@ -44,7 +46,7 @@ export function StageMover({ opportunityId, currentStageId, stages, compact }: P
         </select>
         {changed && (
           <>
-            <button type="button" className="btn btn-primary" onClick={submit} disabled={pending}>
+            <button type="button" className="btn btn-primary" onClick={() => (toLost ? setAsking(true) : run(null, null))} disabled={pending}>
               {pending ? "…" : "Перевести"}
             </button>
             <button
@@ -61,14 +63,12 @@ export function StageMover({ opportunityId, currentStageId, stages, compact }: P
           </>
         )}
       </div>
-      {needReason && (
-        <textarea className="input" placeholder="Причина отказа (обязательно)" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} aria-label="Причина отказа" />
-      )}
-      {error && (
+      {error && !asking && (
         <div className="alert" role="alert">
           {error}
         </div>
       )}
+      {asking && <LostReasonDialog reasons={reasons} pending={pending} error={error} onConfirm={(reasonId, comment) => run(reasonId, comment)} onCancel={() => { setAsking(false); setError(null); }} />}
     </div>
   );
 }

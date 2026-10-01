@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { OpportunityForm } from "@/components/opportunity-form";
 import { Card, PageHeader } from "@/components/ui";
 import { createOpportunity } from "@/lib/actions/opportunities";
+import { getCurrentManagerId, getManagers } from "@/lib/current-manager";
 import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Новая сделка" };
@@ -10,10 +11,13 @@ export const dynamic = "force-dynamic";
 
 export default async function NewOpportunityPage({ searchParams }: { searchParams: Promise<{ accountId?: string; contactId?: string }> }) {
   const { accountId, contactId } = await searchParams;
-  const [accounts, contacts, stages] = await Promise.all([
+  const [accounts, contacts, stages, managers, reasons, currentManagerId] = await Promise.all([
     db.account.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.contact.findMany({ orderBy: { lastName: "asc" } }),
     db.stage.findMany({ orderBy: { position: "asc" } }),
+    getManagers(),
+    db.lostReason.findMany({ orderBy: { position: "asc" } }),
+    getCurrentManagerId(),
   ]);
   return (
     <>
@@ -24,9 +28,11 @@ export default async function NewOpportunityPage({ searchParams }: { searchParam
           accounts={accounts}
           contacts={contacts.map((c) => ({ id: c.id, accountId: c.accountId, name: `${c.lastName} ${c.firstName}` }))}
           stages={stages.map((s) => ({ id: s.id, code: s.code, name: s.name }))}
+          managers={managers}
+          reasons={reasons}
           submitLabel="Создать сделку"
           cancelHref="/opportunities"
-          initial={{ accountId: accountId ?? "", contactId: contactId ?? "", stageId: stages[0]?.id ?? "" }}
+          initial={{ accountId: accountId ?? "", contactId: contactId ?? "", stageId: stages[0]?.id ?? "", managerId: currentManagerId ?? "" }}
         />
       </Card>
     </>

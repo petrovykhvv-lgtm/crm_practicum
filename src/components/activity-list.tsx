@@ -1,13 +1,13 @@
 import { formatDate, toDateInput } from "@/lib/labels";
+import { addDays, startOfDay } from "@/lib/tz";
 import { ActivityRow, type ActivityRowData } from "./activity-row";
 
-type Item = { id: string; type: "note" | "task"; body: string; dueDate: Date | null; done: boolean; createdAt: Date };
+type Item = { id: string; type: "note" | "task"; body: string; dueDate: Date | null; done: boolean; createdAt: Date; assignee?: { id: string; name: string } | null };
 
 /** Подготавливает данные строки: все даты и признаки считаются на сервере. */
 export function toActivityRow(a: Item, target?: ActivityRowData["target"]): ActivityRowData {
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+  const startOfToday = startOfDay();
+  const endOfToday = addDays(startOfToday, 1);
   const open = a.type === "task" && !a.done && a.dueDate !== null;
   return {
     id: a.id,
@@ -19,11 +19,13 @@ export function toActivityRow(a: Item, target?: ActivityRowData["target"]): Acti
     createdLabel: formatDate(a.createdAt),
     overdue: open && a.dueDate! < startOfToday,
     today: open && a.dueDate! >= startOfToday && a.dueDate! < endOfToday,
+    assigneeId: a.assignee?.id ?? "",
+    assigneeName: a.assignee?.name ?? null,
     target: target ?? null,
   };
 }
 
-export function ActivityList({ items }: { items: Item[] }) {
+export function ActivityList({ items, managers }: { items: Item[]; managers: { id: string; name: string }[] }) {
   if (items.length === 0) return <p className="muted">Активностей пока нет.</p>;
 
   // Сначала невыполненные задачи по сроку, затем остальное от новых к старым.
@@ -33,7 +35,7 @@ export function ActivityList({ items }: { items: Item[] }) {
   return (
     <div>
       {[...openTasks, ...rest].map((a) => (
-        <ActivityRow key={a.id} row={toActivityRow(a)} />
+        <ActivityRow key={a.id} row={toActivityRow(a)} managers={managers} />
       ))}
     </div>
   );

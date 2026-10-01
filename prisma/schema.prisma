@@ -71,68 +71,79 @@ model Contact {
 }
 
 model Lead {
-  id                 String      @id @default(cuid())
+  id                 String       @id @default(cuid())
   name               String
   company            String?
   email              String?
   phone              String?
   source             LeadSource
-  status             LeadStatus  @default(new)
-  budget             Decimal?    @db.Decimal(14, 2)
+  status             LeadStatus   @default(new)
+  budget             Decimal?     @db.Decimal(14, 2)
   venue              String?
   deadline           DateTime?
   workFormat         String?
   disqualifyReason   String?
   convertedAt        DateTime?
   convertedAccountId String?
-  convertedAccount   Account?    @relation(fields: [convertedAccountId], references: [id], onDelete: Restrict)
+  convertedAccount   Account?     @relation(fields: [convertedAccountId], references: [id], onDelete: Restrict)
   convertedContactId String?
-  convertedContact   Contact?    @relation(fields: [convertedContactId], references: [id], onDelete: Restrict)
+  convertedContact   Contact?     @relation(fields: [convertedContactId], references: [id], onDelete: Restrict)
   opportunity        Opportunity?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  managerId          String?
+  manager            Manager?     @relation(fields: [managerId], references: [id], onDelete: SetNull)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
   activities         Activity[]
 
   @@index([status])
   @@index([source])
   @@index([createdAt])
+  @@index([managerId])
 }
 
 model Stage {
-  id            String        @id @default(cuid())
-  code          String        @unique
+  id            String            @id @default(cuid())
+  code          String            @unique
   name          String
-  position      Int           @unique
-  isClosed      Boolean       @default(false)
+  position      Int               @unique
+  isClosed      Boolean           @default(false)
+  /// Вероятность закрытия сделки на стадии, %. Используется в прогнозе выручки.
+  probability   Int               @default(0)
   opportunities Opportunity[]
   transitions   StageTransition[]
 }
 
 model Opportunity {
-  id         String            @id @default(cuid())
-  title      String
-  amount     Decimal?          @db.Decimal(14, 2)
-  status     OpportunityStatus @default(open)
-  lostReason String?
-  closedAt   DateTime?
-  venue      String?
-  eventDate  DateTime?
-  accountId  String
-  account    Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  contactId  String?
-  contact    Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  stageId    String
-  stage      Stage             @relation(fields: [stageId], references: [id], onDelete: Restrict)
-  leadId     String?           @unique
-  lead       Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  activities Activity[]
-  transitions StageTransition[]
+  id            String            @id @default(cuid())
+  title         String
+  amount        Decimal?          @db.Decimal(14, 2)
+  status        OpportunityStatus @default(open)
+  /// Комментарий к причине отказа (для причины «Другое» обязателен).
+  lostReason    String?
+  lostReasonId  String?
+  lostReasonRef LostReason?       @relation(fields: [lostReasonId], references: [id], onDelete: SetNull)
+  closedAt      DateTime?
+  venue         String?
+  eventDate     DateTime?
+  accountId     String
+  account       Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  contactId     String?
+  contact       Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  stageId       String
+  stage         Stage             @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  leadId        String?           @unique
+  lead          Lead?             @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  managerId     String?
+  manager       Manager?          @relation(fields: [managerId], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  activities    Activity[]
+  transitions   StageTransition[]
 
   @@index([status])
   @@index([stageId])
   @@index([accountId])
+  @@index([managerId])
 }
 
 /// История попаданий сделки на стадии воронки. Из неё строится динамика объёмов по этапам на дашборде.
@@ -166,8 +177,51 @@ model Activity {
   contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
   accountId     String?
   account       Account?     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  assigneeId    String?
+  assignee      Manager?     @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
 
   @@index([type, done, dueDate])
+  @@index([assigneeId])
   @@index([opportunityId])
   @@index([leadId])
+}
+
+/// Ответственный менеджер. Авторизации нет: текущий менеджер выбирается в шапке и хранится в cookie.
+model Manager {
+  id            String        @id @default(cuid())
+  name          String
+  email         String?
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  leads         Lead[]
+  opportunities Opportunity[]
+  activities    Activity[]
+}
+
+/// Справочник причин отказа по сделкам.
+model LostReason {
+  id              String        @id @default(cuid())
+  name            String        @unique
+  position        Int           @default(0)
+  /// Для этой причины комментарий обязателен («Другое»).
+  requiresComment Boolean       @default(false)
+  opportunities   Opportunity[]
+}
+
+/// Журнал изменений. Связи с сущностями нет намеренно: история остаётся после удаления записи.
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  /// create | update | delete | stage | convert
+  action     String
+  summary    String
+  /// [{ field, from, to }] для update и stage
+  changes    Json?
+  actorId    String?
+  actorName  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
 }

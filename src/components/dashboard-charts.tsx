@@ -90,6 +90,7 @@ export function FunnelChart({ labels, sums, counts, colors, refusals }: FunnelCh
   };
 
   return (
+    <>
     <div
       className="chart-frame"
       role="img"
@@ -127,6 +128,19 @@ export function FunnelChart({ labels, sums, counts, colors, refusals }: FunnelCh
         Отказы: <b>{compactRub(refusals.sum)}</b> · {pluralDeals(refusals.count)}
       </div>
     </div>
+    <table className="sr-only">
+      <caption>Воронка продаж по объёму денег (дошедшие до этапа и дальше)</caption>
+      <thead>
+        <tr><th>Этап</th><th>Объём</th><th>Сделок</th></tr>
+      </thead>
+      <tbody>
+        {labels.map((l, i) => (
+          <tr key={l}><td>{l}</td><td>{compactRub(sums[i] ?? 0)}</td><td>{counts[i] ?? 0}</td></tr>
+        ))}
+        <tr><td>Отказы (не входят в воронку)</td><td>{compactRub(refusals.sum)}</td><td>{refusals.count}</td></tr>
+      </tbody>
+    </table>
+    </>
   );
 }
 
@@ -186,6 +200,17 @@ export function TrendChart({ title, labels, values, counts, color, stepLabel }: 
           }}
         />
       </div>
+      <table className="sr-only">
+        <caption>{`Динамика объёма на этапе «${title}» ${stepLabel}`}</caption>
+        <thead>
+          <tr><th>Период</th><th>Объём</th><th>Сделок</th></tr>
+        </thead>
+        <tbody>
+          {labels.map((l, i) => (
+            <tr key={l}><td>{l}</td><td>{compactRub(values[i] ?? 0)}</td><td>{counts[i] ?? 0}</td></tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

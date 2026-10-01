@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HistoryCard } from "@/components/history-card";
 import { ActivitySection } from "@/components/activity-section";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
@@ -21,10 +22,11 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const lead = await db.lead.findUnique({
     where: { id },
     include: {
+      manager: { select: { name: true } },
       convertedAccount: true,
       convertedContact: true,
       opportunity: true,
-      activities: { orderBy: { createdAt: "desc" } },
+      activities: { orderBy: { createdAt: "desc" }, include: { assignee: { select: { id: true, name: true } } } },
     },
   });
   if (!lead) notFound();
@@ -61,6 +63,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               ["Площадка", lead.venue],
               ["Желаемый срок", formatDate(lead.deadline)],
               ["Формат работ", lead.workFormat],
+              ["Ответственный", lead.manager?.name],
               ...(lead.status === "disqualified" ? ([["Причина отказа", lead.disqualifyReason]] as [string, string | null][]) : []),
               ["Создан", formatDate(lead.createdAt)],
             ]}
@@ -106,6 +109,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             </Card>
           )}
           <ActivitySection kind="lead" id={lead.id} items={lead.activities} />
+          <HistoryCard entityType="lead" entityId={lead.id} />
         </div>
       </div>
     </>

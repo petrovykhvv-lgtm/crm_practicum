@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HistoryCard } from "@/components/history-card";
 import { ActivitySection } from "@/components/activity-section";
 import { DeleteButton } from "@/components/delete-button";
 import { Badge, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
@@ -24,7 +25,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
       account: true,
       leads: true,
       opportunities: { orderBy: { createdAt: "desc" }, include: { stage: true } },
-      activities: { orderBy: { createdAt: "desc" } },
+      activities: { orderBy: { createdAt: "desc" }, include: { assignee: { select: { id: true, name: true } } } },
     },
   });
   if (!contact) notFound();
@@ -74,6 +75,7 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
         </Card>
       </div>
       <ActivitySection kind="contact" id={contact.id} items={contact.activities} />
+      <HistoryCard entityType="contact" entityId={contact.id} />
     </>
   );
 }

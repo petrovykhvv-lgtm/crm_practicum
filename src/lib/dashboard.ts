@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { bucketLabel, type Period } from "@/lib/period";
+import type { Period } from "@/lib/period";
+import { APP_TZ, addDays, startOfDay } from "@/lib/tz";
 import {
   LEAD_SOURCES,
   LEAD_STATUSES,
@@ -34,18 +35,23 @@ export type AttentionDeal = {
 export type LeadStatusStat = { status: LeadStatusValue; count: number; budget: number; color: string };
 export type LeadSourceStat = { source: LeadSourceValue; count: number; budget: number };
 
+/** Фильтр по ответственному: null — все, { value: null } — без ответственного, { value: id } — конкретный менеджер. */
+export type ManagerScope = { value: string | null } | null;
+
 /**
  * Все показатели считаются на сервере запросами Prisma groupBy / aggregate / count
  * при каждом открытии страницы. Возвращаются только простые числа и строки.
  */
-export async function getDashboardData(period: Period) {
+export async function getDashboardData(period: Period, manager: ManagerScope = null) {
   const now = new Date();
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(startOfToday.getTime() + DAY);
+  const startOfToday = startOfDay(now);
+  const endOfToday = addDays(startOfToday, 1);
   const stuckBefore = new Date(now.getTime() - STUCK_DAYS * DAY);
 
   const inPeriod = { gte: period.from, lte: period.to };
+  const byManager = manager ? { managerId: manager.value } : {};
+  const byAssignee = manager ? { assigneeId: manager.value } : {};
+  const transitionScope = !manager ? Prisma.empty : manager.value === null ? Prisma.sql`AND o."managerId" IS NULL` : Prisma.sql`AND o."managerId" = ${manager.value}`;
   const overdueOnDeal = { type: "task", done: false, dueDate: { lt: startOfToday } } as const;
   const attentionFilter: Prisma.OpportunityWhereInput = { OR: [{ updatedAt: { lt: stuckBefore } }, { activities: { some: overdueOnDeal } }] };
   const openTask = { type: "task", done: false } as const;
@@ -66,22 +72,24 @@ export async function getDashboardData(period: Period) {
     attentionRows,
     attentionCount,
     bucketRows,
+    lostGroups,
+    reasonList,
   ] = await Promise.all([
-    db.lead.groupBy({ by: ["status"], _count: { _all: true }, _sum: { budget: true } }),
-    db.lead.groupBy({ by: ["source"], _count: { _all: true }, _sum: { budget: true } }),
-    db.lead.count({ where: { createdAt: inPeriod } }),
-    db.lead.count({ where: { createdAt: inPeriod, status: "converted" } }),
-    db.opportunity.aggregate({ where: { status: "open" }, _count: { _all: true }, _sum: { amount: true } }),
-    db.opportunity.groupBy({ by: ["stageId"], _count: { _all: true }, _sum: { amount: true } }),
-    db.opportunity.groupBy({ by: ["status"], where: { status: { in: ["won", "lost"] }, closedAt: inPeriod }, _count: { _all: true } }),
-    db.opportunity.aggregate({ where: { status: "won", closedAt: inPeriod }, _count: { _all: true }, _sum: { amount: true } }),
+    db.lead.groupBy({ by: ["status"], where: byManager, _count: { _all: true }, _sum: { budget: true } }),
+    db.lead.groupBy({ by: ["source"], where: byManager, _count: { _all: true }, _sum: { budget: true } }),
+    db.lead.count({ where: { createdAt: inPeriod, ...byManager } }),
+    db.lead.count({ where: { createdAt: inPeriod, status: "converted", ...byManager } }),
+    db.opportunity.aggregate({ where: { status: "open", ...byManager }, _count: { _all: true }, _sum: { amount: true } }),
+    db.opportunity.groupBy({ by: ["stageId"], where: byManager, _count: { _all: true }, _sum: { amount: true } }),
+    db.opportunity.groupBy({ by: ["status"], where: { status: { in: ["won", "lost"] }, closedAt: inPeriod, ...byManager }, _count: { _all: true } }),
+    db.opportunity.aggregate({ where: { status: "won", closedAt: inPeriod, ...byManager }, _count: { _all: true }, _sum: { amount: true } }),
     db.stage.findMany({ orderBy: { position: "asc" } }),
-    db.activity.count({ where: { ...openTask, dueDate: { lt: startOfToday } } }),
-    db.activity.count({ where: { ...openTask, dueDate: { gte: startOfToday, lt: endOfToday } } }),
-    db.lead.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
+    db.activity.count({ where: { ...openTask, ...byAssignee, dueDate: { lt: startOfToday } } }),
+    db.activity.count({ where: { ...openTask, ...byAssignee, dueDate: { gte: startOfToday, lt: endOfToday } } }),
+    db.lead.findMany({ where: byManager, orderBy: { createdAt: "desc" }, take: 20 }),
     // Сделки, требующие внимания: открытые сделки с просроченной задачей или без изменений дольше STUCK_DAYS.
     db.opportunity.findMany({
-      where: { AND: [{ status: "open" }, attentionFilter] },
+      where: { AND: [{ status: "open" }, attentionFilter, byManager] },
       orderBy: { amount: { sort: "desc", nulls: "last" } },
       take: 50,
       include: {
@@ -90,13 +98,17 @@ export async function getDashboardData(period: Period) {
         activities: { where: overdueOnDeal, orderBy: { dueDate: "asc" }, select: { id: true, body: true, dueDate: true } },
       },
     }),
-    db.opportunity.count({ where: { AND: [{ status: "open" }, attentionFilter] } }),
+    db.opportunity.count({ where: { AND: [{ status: "open" }, attentionFilter, byManager] } }),
     // Динамика: сколько денег попадало на каждый этап по корзинам периода (шаг из allowlist day|week|month, группировка в БД).
     db.$queryRaw<{ stageId: string; bucket: Date; cnt: number; sum: number }[]>(Prisma.sql`
-      SELECT "stageId", date_trunc(${Prisma.raw(`'${period.step}'`)}, "createdAt") AS bucket, COUNT(*)::int AS cnt, COALESCE(SUM("amount"), 0)::float8 AS sum
-      FROM "StageTransition"
-      WHERE "createdAt" >= ${period.buckets[0] ?? period.from} AND "createdAt" <= ${period.to}
-      GROUP BY "stageId", date_trunc(${Prisma.raw(`'${period.step}'`)}, "createdAt")`),
+      SELECT t."stageId" AS "stageId", date_trunc(${Prisma.raw(`'${period.step}'`)}, t."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE ${APP_TZ}) AS bucket, COUNT(*)::int AS cnt, COALESCE(SUM(t."amount"), 0)::float8 AS sum
+      FROM "StageTransition" t
+      JOIN "Opportunity" o ON o."id" = t."opportunityId"
+      WHERE t."createdAt" >= ${period.from} AND t."createdAt" <= ${period.to} ${transitionScope}
+      GROUP BY 1, 2`),
+    // Причины отказов за период: сколько сделок и денег потеряно по каждой причине.
+    db.opportunity.groupBy({ by: ["lostReasonId"], where: { status: "lost", closedAt: inPeriod, ...byManager }, _count: { _all: true }, _sum: { amount: true } }),
+    db.lostReason.findMany({ select: { id: true, name: true } }),
   ]);
 
   // Лиды
@@ -136,12 +148,18 @@ export async function getDashboardData(period: Period) {
       count: reached.reduce((n, x) => n + x.count, 0),
     };
   });
+  const probabilityOf = new Map(stages.map((st) => [st.id, st.probability]));
+  const forecast = stageStats.filter((st) => st.code !== "won" && st.code !== "lost").reduce((n, st) => n + (st.sum * (probabilityOf.get(st.id) ?? 0)) / 100, 0);
+  const reasonName = new Map(reasonList.map((r) => [r.id, r.name]));
+  const lostByReason = lostGroups
+    .map((g) => ({ name: g.lostReasonId ? (reasonName.get(g.lostReasonId) ?? "Без причины") : "Без причины", count: g._count._all, sum: num(g._sum.amount) }))
+    .sort((a, b) => b.sum - a.sum || b.count - a.count);
   const lostStage = stageStats.find((s) => s.code === "lost");
   const refusals = { count: lostStage?.count ?? 0, sum: lostStage?.sum ?? 0 };
 
   // Динамика по этапам: корзины периода по оси X, сумма переходов на этап по оси Y.
-  const bucketKeys = period.buckets.map((b) => b.toISOString().slice(0, 10));
-  const trendLabels = period.buckets.map((b) => bucketLabel(b, period.step));
+  const bucketKeys = period.buckets.map((b) => b.key);
+  const trendLabels = period.buckets.map((b) => b.label);
   const trends: StageTrend[] = funnelBase.map((stage) => {
     const rows = bucketRows.filter((r) => r.stageId === stage.id);
     const at = (key: string) => rows.find((r) => r.bucket.toISOString().slice(0, 10) === key);
@@ -177,6 +195,7 @@ export async function getDashboardData(period: Period) {
       totalLeads,
       openDeals: openDeals._count._all,
       openDealsSum: num(openDeals._sum.amount),
+      forecast,
       overdueTasks: overdueCount,
       newLeadsPeriod,
       conversionPct: newLeadsPeriod > 0 ? Math.round((convertedPeriod / newLeadsPeriod) * 100) : 0,
@@ -195,5 +214,6 @@ export async function getDashboardData(period: Period) {
     recentLeads,
     attention,
     attentionCount,
+    lostByReason,
   };
 }

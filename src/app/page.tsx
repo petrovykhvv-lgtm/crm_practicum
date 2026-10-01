@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FunnelChart, TrendChart } from "@/components/dashboard-charts";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { PeriodControls } from "@/components/period-controls";
+import { getCurrentManagerId, getManagers, resolveManagerFilter } from "@/lib/current-manager";
 import { STUCK_DAYS, getDashboardData } from "@/lib/dashboard";
 import { STEP_LABELS, resolvePeriod } from "@/lib/period";
 import { pickParam, type SearchParams } from "@/lib/search";
@@ -108,13 +109,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const period = resolvePeriod(sp);
   const requestedStep = pickParam(sp, "step") ?? "";
-  const d = await getDashboardData(period);
+  const managerParam = pickParam(sp, "manager");
+  const [managers, currentManagerId, managerFilter] = await Promise.all([getManagers(), getCurrentManagerId(), resolveManagerFilter(managerParam)]);
+  const d = await getDashboardData(period, managerFilter ? { value: managerFilter.value } : null);
   const { kpi } = d;
 
   const main: Kpi[] = [
     { label: "Всего лидов", value: String(kpi.totalLeads), hint: `за период: ${kpi.newLeadsPeriod}`, color: "var(--teal)", icon: "users", href: "/leads" },
     { label: "Открытых сделок", value: String(kpi.openDeals), color: "var(--orange)", icon: "briefcase", href: "/opportunities?status=open" },
-    { label: "Сумма открытых сделок", value: formatMoney(kpi.openDealsSum), color: "var(--green)", icon: "ruble", href: "/pipeline" },
+    { label: "Сумма открытых сделок", value: formatMoney(kpi.openDealsSum), hint: `прогноз: ${formatMoney(kpi.forecast)}`, color: "var(--green)", icon: "ruble", href: "/pipeline" },
     { label: "Просроченных задач", value: String(kpi.overdueTasks), hint: `на сегодня: ${kpi.todayTasks}`, color: "var(--danger)", icon: "alert", alert: kpi.overdueTasks > 0, href: "/tasks?view=overdue" },
   ];
   const secondary: Kpi[] = [
@@ -130,10 +133,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader
         title="Дашборд"
-        subtitle={`Данные из базы на ${d.generatedAt.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "medium" })}. Обновляются при каждом открытии страницы.`}
+        subtitle={`${managerFilter ? `Ответственный: ${managerFilter.label}. ` : ""}Данные из базы на ${d.generatedAt.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "medium" })}. Обновляются при каждом открытии страницы.`}
       />
 
-      <PeriodControls period={period} requestedStep={requestedStep} />
+      <PeriodControls period={period} requestedStep={requestedStep} managers={managers} hasCurrent={!!currentManagerId} manager={managerParam} />
 
       <section className="kpi-row" aria-label="Ключевые показатели">
         {[...main, ...secondary].map((k) => (
@@ -220,6 +223,31 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
         </Card>
       </div>
+
+      <Card title="Почему теряем сделки" aside={`проигранные ${period.label}`}>
+        {d.lostByReason.length === 0 ? (
+          <p className="muted">За выбранный период проигранных сделок нет.</p>
+        ) : (
+          <div className="shares">
+            {d.lostByReason.map((r) => {
+              const max = Math.max(...d.lostByReason.map((x) => x.sum), 1);
+              return (
+                <div className="share" key={r.name}>
+                  <div className="share-row">
+                    <span>{r.name}</span>
+                    <span>
+                      <b>{r.sum > 0 ? formatMoney(r.sum) : "без суммы"}</b> <span className="muted">· сделок: {r.count}</span>
+                    </span>
+                  </div>
+                  <div className="share-bar" aria-hidden>
+                    <span style={{ width: `${Math.round((r.sum / max) * 100)}%`, background: "var(--stage-lost)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
     </>
   );
 }

@@ -10,16 +10,20 @@ type Props = {
   accounts: { id: string; name: string }[];
   contacts: { id: string; accountId: string; name: string }[];
   stages: { id: string; code: string; name: string }[];
+  managers: { id: string; name: string }[];
+  reasons: { id: string; name: string; requiresComment: boolean }[];
   submitLabel: string;
   cancelHref: string;
 };
 
-export function OpportunityForm({ action, initial, accounts, contacts, stages, submitLabel, cancelHref }: Props) {
+export function OpportunityForm({ action, initial, accounts, contacts, stages, managers, reasons, submitLabel, cancelHref }: Props) {
   const { state, onSubmit, pending } = useServerForm(action);
   const f = fieldsOf(state, initial);
   const [accountId, setAccountId] = useState(initial?.accountId ?? "");
   const [stageId, setStageId] = useState(initial?.stageId ?? stages[0]?.id ?? "");
   const stageCode = stages.find((s) => s.id === stageId)?.code;
+  const [reasonId, setReasonId] = useState(initial?.lostReasonId ?? "");
+  const reasonNeedsComment = reasons.find((r) => r.id === reasonId)?.requiresComment ?? false;
   const accountContacts = contacts.filter((c) => c.accountId === accountId);
 
   return (
@@ -57,7 +61,21 @@ export function OpportunityForm({ action, initial, accounts, contacts, stages, s
       <TextField label="Сумма, ₽" inputMode="decimal" placeholder="1200000" hint={stageCode === "won" ? "Для выигранной сделки сумма должна быть больше 0" : undefined} {...f("amount")} />
       <TextField label="Площадка" maxLength={200} {...f("venue")} />
       <TextField label="Дата мероприятия" type="date" {...f("eventDate")} />
-      {stageCode === "lost" && <TextAreaField label="Причина отказа" required wide maxLength={500} {...f("lostReason")} />}
+      <SelectField label="Ответственный" placeholder="Не назначен" options={managers.map((m) => ({ value: m.id, label: m.name }))} {...f("managerId")} />
+      {stageCode === "lost" && (
+        <>
+          <SelectField
+            label="Причина отказа"
+            required
+            placeholder="Выберите причину"
+            options={reasons.map((r) => ({ value: r.id, label: r.name }))}
+            {...f("lostReasonId")}
+            value={reasonId}
+            onChange={setReasonId}
+          />
+          <TextAreaField label="Комментарий к отказу" required={reasonNeedsComment} wide maxLength={500} hint={reasonNeedsComment ? "Для причины «Другое» комментарий обязателен" : undefined} {...f("lostReason")} />
+        </>
+      )}
       <FormActions submitLabel={submitLabel} cancelHref={cancelHref} pending={pending} />
     </form>
   );

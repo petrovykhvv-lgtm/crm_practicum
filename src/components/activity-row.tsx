@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { deleteActivity, updateActivity } from "@/lib/actions/activities";
 import { ConfirmDialog } from "./confirm-dialog";
-import { FormMessage, TextAreaField, TextField, fieldsOf, useServerForm } from "./form-fields";
+import { FormMessage, SelectField, TextAreaField, TextField, fieldsOf, useServerForm } from "./form-fields";
 import { TaskToggle } from "./task-toggle";
 
 export type ActivityRowData = {
@@ -18,13 +18,15 @@ export type ActivityRowData = {
   createdLabel: string;
   overdue: boolean;
   today: boolean;
+  assigneeId: string;
+  assigneeName: string | null;
   /** Сущность, к которой относится активность (для общего списка задач). */
   target?: { href: string; label: string } | null;
 };
 
-function EditForm({ row, onDone }: { row: ActivityRowData; onDone: () => void }) {
+function EditForm({ row, managers, onDone }: { row: ActivityRowData; managers: { id: string; name: string }[]; onDone: () => void }) {
   const { state, onSubmit, pending } = useServerForm(updateActivity.bind(null, row.id));
-  const f = fieldsOf(state, { body: row.body, dueDate: row.dueInput });
+  const f = fieldsOf(state, { body: row.body, dueDate: row.dueInput, assigneeId: row.assigneeId });
   const [handled, setHandled] = useState<typeof state>(undefined);
   if (state?.ok && state !== handled) {
     setHandled(state);
@@ -35,6 +37,7 @@ function EditForm({ row, onDone }: { row: ActivityRowData; onDone: () => void })
       <FormMessage state={state?.ok ? undefined : state} />
       <TextAreaField label={row.type === "note" ? "Текст заметки" : "Что нужно сделать"} required maxLength={2000} {...f("body")} />
       {row.type === "task" && <TextField label="Срок выполнения" type="date" required {...f("dueDate")} />}
+      {row.type === "task" && <SelectField label="Исполнитель" placeholder="Не назначен" options={managers.map((m) => ({ value: m.id, label: m.name }))} {...f("assigneeId")} />}
       <div className="row">
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Сохранение…" : "Сохранить"}
@@ -48,7 +51,7 @@ function EditForm({ row, onDone }: { row: ActivityRowData; onDone: () => void })
 }
 
 /** Строка ленты активностей: отметка выполнения, правка и удаление. */
-export function ActivityRow({ row }: { row: ActivityRowData }) {
+export function ActivityRow({ row, managers }: { row: ActivityRowData; managers: { id: string; name: string }[] }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [delState, runDelete] = useActionState(deleteActivity.bind(null, row.id), undefined);
@@ -60,7 +63,7 @@ export function ActivityRow({ row }: { row: ActivityRowData }) {
       {isTask && <TaskToggle id={row.id} done={row.done} />}
       <div style={{ minWidth: 0, gridColumn: editing ? "2 / -1" : undefined }}>
         {editing ? (
-          <EditForm row={row} onDone={() => setEditing(false)} />
+          <EditForm row={row} managers={managers} onDone={() => setEditing(false)} />
         ) : (
           <>
             <div className="body">{row.body}</div>
@@ -74,6 +77,7 @@ export function ActivityRow({ row }: { row: ActivityRowData }) {
               ) : (
                 row.createdLabel
               )}
+              {isTask && row.assigneeName && <> · {row.assigneeName}</>}
               {row.target && (
                 <>
                   {" "}

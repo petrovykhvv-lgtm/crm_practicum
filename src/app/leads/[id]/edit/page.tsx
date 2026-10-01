@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { LeadForm } from "@/components/lead-form";
 import { Card, PageHeader } from "@/components/ui";
 import { updateLead } from "@/lib/actions/leads";
+import { getManagers } from "@/lib/current-manager";
 import { db } from "@/lib/db";
 import { toAmountInput, toDateInput } from "@/lib/labels";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EditLeadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const lead = await db.lead.findUnique({ where: { id } });
+  const [lead, managers] = await Promise.all([db.lead.findUnique({ where: { id } }), getManagers()]);
   if (!lead) notFound();
 
   return (
@@ -25,6 +26,7 @@ export default async function EditLeadPage({ params }: { params: Promise<{ id: s
       <Card>
         <LeadForm
           action={updateLead.bind(null, lead.id)}
+          managers={managers}
           statusLocked={lead.status === "converted"}
           submitLabel="Сохранить"
           cancelHref={`/leads/${lead.id}`}
@@ -40,6 +42,7 @@ export default async function EditLeadPage({ params }: { params: Promise<{ id: s
             deadline: toDateInput(lead.deadline),
             workFormat: lead.workFormat ?? "",
             disqualifyReason: lead.disqualifyReason ?? "",
+            managerId: lead.managerId ?? "",
           }}
         />
       </Card>

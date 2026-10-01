@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ConvertLeadForm } from "@/components/convert-lead-form";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { convertLead } from "@/lib/actions/convert";
+import { getCurrentManagerId, getManagers } from "@/lib/current-manager";
 import { db } from "@/lib/db";
 import { NEW_ACCOUNT, toAmountInput, toDateInput } from "@/lib/labels";
 
@@ -47,9 +48,11 @@ export default async function ConvertLeadPage({ params }: { params: Promise<{ id
     );
   }
 
-  const [accounts, matching] = await Promise.all([
+  const [accounts, matching, managers, currentManagerId] = await Promise.all([
     db.account.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     lead.company ? db.account.findFirst({ where: { name: { equals: lead.company, mode: "insensitive" } }, select: { id: true } }) : null,
+    getManagers(),
+    getCurrentManagerId(),
   ]);
 
   // Имя лида «Имя Фамилия»: первое слово — имя, остальное — фамилия. Если слово одно, фамилию нужно ввести вручную.
@@ -63,6 +66,7 @@ export default async function ConvertLeadPage({ params }: { params: Promise<{ id
         <ConvertLeadForm
           action={convertLead.bind(null, lead.id)}
           accounts={accounts}
+          managers={managers}
           cancelHref={`/leads/${lead.id}`}
           initial={{
             firstName: firstName ?? "",
@@ -75,6 +79,7 @@ export default async function ConvertLeadPage({ params }: { params: Promise<{ id
             amount: toAmountInput(lead.budget),
             venue: lead.venue ?? "",
             eventDate: toDateInput(lead.deadline),
+            managerId: lead.managerId ?? currentManagerId ?? "",
           }}
         />
       </Card>

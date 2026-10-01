@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { addActivity, type ActivityTarget } from "@/lib/actions/activities";
-import { FormMessage, TextAreaField, TextField, fieldsOf, useServerForm } from "./form-fields";
+import { FormMessage, SelectField, TextAreaField, TextField, fieldsOf, useServerForm } from "./form-fields";
 
 /** Быстрые действия «Добавить заметку» и «Добавить задачу» для карточки любой сущности. */
-export function AddActivityForm({ kind, id }: { kind: ActivityTarget; id: string }) {
+export function AddActivityForm({ kind, id, managers, defaultAssigneeId }: { kind: ActivityTarget; id: string; managers: { id: string; name: string }[]; defaultAssigneeId?: string }) {
   const { state, onSubmit, pending } = useServerForm(addActivity.bind(null, kind, id));
   const [type, setType] = useState<"note" | "task">("note");
   const formRef = useRef<HTMLFormElement>(null);
-  const f = fieldsOf(state);
+  const f = fieldsOf(state, { assigneeId: defaultAssigneeId ?? "" });
 
   useEffect(() => {
     if (state?.ok) formRef.current?.reset();
@@ -28,6 +28,7 @@ export function AddActivityForm({ kind, id }: { kind: ActivityTarget; id: string
       <FormMessage state={state?.ok ? undefined : state} />
       <TextAreaField label={type === "note" ? "Текст заметки" : "Что нужно сделать"} required maxLength={2000} {...f("body")} />
       {type === "task" && <TextField label="Срок выполнения" type="date" required {...f("dueDate")} />}
+      {type === "task" && <SelectField label="Исполнитель" placeholder="Не назначен" options={managers.map((m) => ({ value: m.id, label: m.name }))} {...f("assigneeId")} />}
       <div className="row">
         <button className="btn btn-primary" type="submit" disabled={pending}>
           {pending ? "Сохранение…" : type === "note" ? "Добавить заметку" : "Добавить задачу"}

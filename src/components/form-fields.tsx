@@ -14,7 +14,9 @@ export function useServerForm(action: (prev: FormState, formData: FormData) => P
   const [pending, startTransition] = useTransition();
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    // submitter нужен, чтобы в данные попала нажатая кнопка (например, «Создать всё равно»).
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const formData = new FormData(event.currentTarget, submitter);
     startTransition(() => formAction(formData));
   };
   // После неудачной отправки переводим фокус на первое поле с ошибкой.

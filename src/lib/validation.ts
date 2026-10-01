@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dayNoon, parseYmd } from "@/lib/tz";
 import { EDITABLE_LEAD_STATUSES, LEAD_SOURCES, NEW_ACCOUNT } from "@/lib/labels";
 
 const required = (label: string, max = 200) =>
@@ -55,8 +56,9 @@ const optionalDate = (label: string) =>
     .optional()
     .transform((v, ctx) => {
       if (!v) return null;
-      const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T12:00:00`) : null;
-      if (!d || Number.isNaN(d.getTime())) {
+      const ymd = parseYmd(v);
+      const d = ymd ? dayNoon(ymd) : null;
+      if (!d) {
         ctx.addIssue({ code: "custom", message: `${label}: введите корректную дату` });
         return z.NEVER;
       }
@@ -83,6 +85,7 @@ export const leadBaseSchema = z.object({
   venue: optional("Площадка"),
   deadline: optionalDate("Срок"),
   workFormat: optional("Формат работ"),
+  managerId: optionalId,
 });
 
 export const leadSchema = leadBaseSchema
@@ -127,7 +130,10 @@ export const opportunitySchema = z.object({
   amount: optionalMoney("Сумма"),
   venue: optional("Площадка"),
   eventDate: optionalDate("Дата мероприятия"),
-  lostReason: optional("Причина отказа", 500),
+  managerId: optionalId,
+  lostReasonId: optionalId,
+  /** Комментарий к причине отказа. */
+  lostReason: optional("Комментарий", 500),
 });
 
 /* ---------- Конвертация лида ---------- */
@@ -150,6 +156,7 @@ export const convertLeadSchema = z
     amount: optionalMoney("Сумма"),
     venue: optional("Площадка"),
     eventDate: optionalDate("Дата мероприятия"),
+    managerId: optionalId,
   })
   .superRefine((data, ctx) => {
     if (data.accountChoice === NEW_ACCOUNT && !data.accountName) {
@@ -167,6 +174,7 @@ export const activitySchema = z
     type: z.enum(["note", "task"], { error: "Тип: выберите заметку или задачу" }),
     body: required("Текст", 2000),
     dueDate: optionalDate("Срок"),
+    assigneeId: optionalId,
   })
   .superRefine((a, ctx) => {
     if (a.type === "task" && !a.dueDate) {

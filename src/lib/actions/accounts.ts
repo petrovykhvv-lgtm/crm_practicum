@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { audit, diffFields } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { accountSchema } from "@/lib/validation";
-import { actionError, rawValues, parseForm, type FormState } from "./shared";
+import { actionError, parseForm, rawValues, type FormState } from "./shared";
 
 function revalidateAccounts(id?: string) {
   revalidatePath("/accounts");
@@ -18,7 +19,9 @@ export async function createAccount(_prev: FormState, formData: FormData): Promi
 
   let id: string;
   try {
-    id = (await db.account.create({ data: parsed.data })).id;
+    const account = await db.account.create({ data: parsed.data });
+    id = account.id;
+    await audit({ entityType: "account", entityId: id, action: "create", summary: `Создана компания «${account.name}»` });
   } catch (error) {
     return actionError(error, rawValues(formData));
   }
@@ -31,7 +34,11 @@ export async function updateAccount(id: string, _prev: FormState, formData: Form
   if (!parsed.ok) return parsed.state;
 
   try {
-    await db.account.update({ where: { id }, data: parsed.data });
+    const existing = await db.account.findUnique({ where: { id } });
+    if (!existing) return { message: "Компания не найдена: возможно, её уже удалили." };
+    const updated = await db.account.update({ where: { id }, data: parsed.data });
+    const changes = diffFields("account", existing, updated);
+    if (changes.length) await audit({ entityType: "account", entityId: id, action: "update", summary: "Изменены данные компании", changes });
   } catch (error) {
     return actionError(error, rawValues(formData));
   }
@@ -44,7 +51,7 @@ export async function deleteAccount(id: string, _prev: FormState, _formData: For
   try {
     const account = await db.account.findUnique({
       where: { id },
-      select: { _count: { select: { contacts: true, opportunities: true, leads: true } } },
+      select: { name: true, _count: { select: { contacts: true, opportunities: true, leads: true } } },
     });
     if (!account) return { message: "Компания уже удалена." };
     const { contacts, opportunities, leads } = account._count;
@@ -57,6 +64,7 @@ export async function deleteAccount(id: string, _prev: FormState, _formData: For
       return { message: `Компанию нельзя удалить, пока к ней привязаны данные (${parts.join(", ")}). Сначала удалите или переназначьте их.` };
     }
     await db.account.delete({ where: { id } });
+    await audit({ entityType: "account", entityId: id, action: "delete", summary: `Удалена компания «${account.name}»` });
   } catch (error) {
     return actionError(error);
   }
